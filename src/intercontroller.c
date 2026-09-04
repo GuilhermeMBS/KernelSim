@@ -13,7 +13,7 @@ typedef enum {
 
 
 int main() {
-    puts("Inter Controller Running");
+    puts("[Inter Controller Running]");
 
 
     return 0;

@@ -1,9 +1,20 @@
+/**
+ * This file is the Kernel in our simulation. It it forks the
+ * Inter Controller to give the signals described in the spec
+ * as IQR0, IQR1 and IQR2.
+ * After that, it forks the processes that will run in
+ * parallel, bounded two by two with pipes, also created by
+ * our "fake" Kernel.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+
+#define NUM_CHILDS 6 // Number of processes managed by the KernelSim
 
 typedef enum {
     EX_SUCCESS,
@@ -13,9 +24,11 @@ typedef enum {
 } ExitStatus;
 
 
-int main() {
-    pid_t controller_pid, kernel_pid;
-    int controller_status, kernel_status;
+int main(void) {
+    puts("[KernelSim Running]");
+
+    pid_t controller_pid;
+    int controller_status;
 
     // Inter Controller
     puts("Creating InterC Controller...");
@@ -26,48 +39,22 @@ int main() {
         exec_ret = execve("intercontroller", NULL, NULL);
 
         if (exec_ret == -1) {
-            perror("Error while executing the Inter Controller");
+            perror("Error while executing the Inter Controller!");
             exit(EX_EXEC_ERROR);
         }
     }
 
     else if (controller_pid < 0) {
-        perror("Error while creating the Inter Controller");
+        perror("Error while creating the Inter Controller!");
         exit(EX_FORK_ERROR);
     }
 
-    // Kernel Sim
-    puts("Creating KernelSim...");
-    kernel_pid = fork();
+    pid_t pids[NUM_CHILDS];
 
-    if (kernel_pid == 0) {
-        int exec_ret = 0;
-        
-        puts("Executing KernelSim...");
-        exec_ret = execve("kernel", NULL, NULL);
-
-        if (exec_ret == -1) {
-            perror("Error while executing the KernelSim");
-            exit(EX_EXEC_ERROR);
-        }
-    }
-
-    else if (kernel_pid < 0) {
-        perror("Error while creating the KernelSim");
-        exit(EX_FORK_ERROR);
-    }
-
-    // Main waits for Controller
+    // Kernel waits for Controller
     pid_t controller_end_pid = waitpid(controller_pid, controller_status, 0);
     if (controller_end_pid == -1) {
-        perror("Controller Waitpid Failed");
-        exit(EX_WAIT_ERROR);
-    }
-
-    // Main waits for Kernel
-    pid_t kernel_end_pid = waitpid(kernel_pid, kernel_status, 0);
-    if (kernel_end_pid == -1) {
-        perror("Kernel Waitpid Failed");
+        perror("Controller Waitpid Failed!");
         exit(EX_WAIT_ERROR);
     }
 
