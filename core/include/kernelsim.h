@@ -17,9 +17,6 @@ retcode_t
 kernelsim_start();
 
 retcode_t
-kernelsim_show();
-
-retcode_t
 kernelsim_pause();
 
 retcode_t

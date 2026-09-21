@@ -5,6 +5,13 @@
  * Inter Controller module.
 */
 
+/**
+ * Loop que dura 1 seg
+ * Probabilidade aleatória de pedir send ou recv
+ * Levantar recv sem ter dado na pipe para receber vai retornar 0
+ * e entra num NO_WAIT
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>

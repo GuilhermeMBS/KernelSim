@@ -7,6 +7,10 @@
  * our "fake" Kernel.
 */
 
+
+/**
+ * Receber IQR1 ou IQR2 sem ninguém precisando, Kernel perde a chamada
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -155,7 +159,6 @@ kernelsim_init()
 retcode_t 
 kernelsim_start() 
 {
-    // CTRL-Z Handler to Show Status
-    // Send Signal to Start in Pipes
+    // Send signal to continue processes
     return SUCCESS;
 }

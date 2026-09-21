@@ -1,6 +1,7 @@
 #ifndef RETCODE_H
 #define RETCODE_H
 
+// Alterar para variáveis com mesmo nome da struct
 typedef enum 
 {
     SUCCESS = 0,
