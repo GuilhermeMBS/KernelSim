@@ -14,8 +14,6 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-// conferir se precisa de todos os includes mesmo
-#include "include/child.h"
 #include "include/intercontroller.h"
 #include "include/kernelsim.h"
 #include "include/retcode.h"
@@ -26,11 +24,10 @@
 
 
 static retcode_t
-ks_build_child_pipes(pcb_child_t* procs)
+_kernelsim_build_child_pipes(pcb_child_t* procs)
 {
     puts("Building Children Pipes...");
-    for (int i = 0; i < NUM_CHILDREN; i++) 
-    {
+    for (int i = 0; i < NUM_CHILDREN; i++) {
         pipe_make(&(procs[i].child));
         pipe_make(&(procs[i].brother));
     }
@@ -41,7 +38,7 @@ ks_build_child_pipes(pcb_child_t* procs)
 
 
 static retcode_t
-ks_build_controller_pipes(pcb_controller_t* proc)
+_kernelsim_build_controller_pipes(pcb_controller_t* proc)
 {
     puts("Building Intercontroller Pipes...");
     pipe_make(&proc->child);
@@ -52,14 +49,12 @@ ks_build_controller_pipes(pcb_controller_t* proc)
 
 
 static retcode_t
-ks_exec_child(pcb_child_t* procs)
+_kernelsim_exec_child(pcb_child_t* procs)
 {
-    for (int i = 0; i < NUM_CHILDREN; i++)
-    {
+    for (int i = 0; i < NUM_CHILDREN; i++) {
         pid_t pid = fork();
 
-        if (pid > 0)
-        {
+        if (pid > 0) {
             // Set PCB Struct
             procs[i].pid   = pid;
             procs[i].time  = 0;
@@ -76,8 +71,7 @@ ks_exec_child(pcb_child_t* procs)
             close(procs[i].brother.from[WRITE]);
         }
 
-        else if (pid == 0)
-        {
+        else if (pid == 0) {
             // Close Unused Pipe Ends
             close(procs[i].child.to[WRITE]);
             close(procs[i].child.from[READ]);
@@ -90,8 +84,7 @@ ks_exec_child(pcb_child_t* procs)
             execl("./bin/child", "child", id_str, read_fd_str, write_fd_str, NULL);
         }
 
-        else
-        {
+        else {
             printf("[PID %d] Child %d Fork Error!\n", pid, i);
             exit(FORK_ERROR);
         }
@@ -102,12 +95,11 @@ ks_exec_child(pcb_child_t* procs)
 
 
 static retcode_t
-ks_exec_controller(pcb_controller_t* proc)
+_kernelsim_exec_controller(pcb_controller_t* proc)
 {
     pid_t pid = fork();
 
-    if (pid > 0)
-    {
+    if (pid > 0) {
         proc->pid = pid;
 
         // Close Unused Pipe Ends
@@ -115,8 +107,7 @@ ks_exec_controller(pcb_controller_t* proc)
         close(proc->child.from[WRITE]);
     }
 
-    else if (pid == 0)
-    {
+    else if (pid == 0) {
         // Redirects the Read End of (Kernel --> Controller) to STDOUT
         dup2(proc->child.to[READ], STDOUT_FILENO);
 
@@ -137,8 +128,7 @@ ks_exec_controller(pcb_controller_t* proc)
         exit(EXEC_ERROR);
     }
 
-    else
-    {
+    else {
         printf("[PID %d] Controller Fork Error!\n", getpid());
         exit(FORK_ERROR);
     }
@@ -148,22 +138,22 @@ ks_exec_controller(pcb_controller_t* proc)
 
 
 retcode_t 
-ks_init() 
+kernelsim_init() 
 {
     // Build Pipes
-    ks_build_child_pipes(processes);
-    ks_build_controller_pipes(&controller);
+    _kernelsim_build_child_pipes(processes);
+    _kernelsim_build_controller_pipes(&controller);
 
     // Create Processes
-    ks_exec_child(processes);
-    ks_exec_controller(&controller);
+    _kernelsim_exec_child(processes);
+    _kernelsim_exec_controller(&controller);
 
     return SUCCESS;
 }
 
 
 retcode_t 
-ks_start() 
+kernelsim_start() 
 {
     // CTRL-Z Handler to Show Status
     // Send Signal to Start in Pipes

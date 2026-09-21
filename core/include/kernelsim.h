@@ -10,8 +10,19 @@ pcb_child_t processes[NUM_CHILDREN];
 pcb_controller_t controller;
 
 
-retcode_t ks_init();
+retcode_t
+kernelsim_init();
 
-retcode_t ks_start();
+retcode_t
+kernelsim_start();
+
+retcode_t
+kernelsim_show();
+
+retcode_t
+kernelsim_pause();
+
+retcode_t
+kernelsim_resume();
 
 #endif

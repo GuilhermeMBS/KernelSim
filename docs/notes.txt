@@ -20,4 +20,7 @@ Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kerne
 
 ----------------------------------------------------------------------
 
-Colocar prints como logs e flag de debug
+1. Colocar prints como logs e flag de debug
+2. Colocar maneira de rodar executável enquanto kernel em paralelo pelo terminal
+3. Documentar tudo
+4. Fazer testes?

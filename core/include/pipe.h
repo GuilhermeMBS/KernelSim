@@ -11,7 +11,8 @@ typedef struct
 } pipe_t;
 
 
-retcode_t pipe_make(pipe_t* p);
+retcode_t
+pipe_make(pipe_t* p);
 // Talvez fazer função auxiliar de close?
 
 #endif
