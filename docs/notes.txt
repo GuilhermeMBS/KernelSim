@@ -1,0 +1,23 @@
+LIMITE POR PROCESSO
+
+limite de endereços da tabela: RLIMIT_NOFILE (geralmente 510 pipes)
+
+
+Se você atingir o limite e tentar chamar pipe(), a chamada falhará retornando -1 com a variável global errno configurada para EMFILE ("Too many open files").
+
+
+Esse limite pode ser consultado ou alterado dentro do programa via chamadas de sistema getrlimit() e setrlimit().
+
+----------------------------------------------------------------------
+
+LIMITE DO SO
+
+Mesmo que você aumente o limite do seu processo, existem restrições globais do Kernel:
+
+Capacidade global de arquivos: controlada em /proc/sys/fs/file-max.
+
+Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kernel (no Linux, o buffer padrão é de 64 KB por pipe). O Kernel impõe um limite máximo de páginas alocadas para pipes por usuário não-root (visível em /proc/sys/fs/pipe-user-pages-hard). Criar centenas de milhares de pipes consumiria rapidamente a memória física do sistema.
+
+----------------------------------------------------------------------
+
+Colocar prints como logs e flag de debug

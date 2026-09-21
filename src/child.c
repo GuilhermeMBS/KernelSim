@@ -11,12 +11,12 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-#include <time.h>
 
 #define MAX_ITER 10000
 #define MIN_ITER 5000
 
-typedef enum {
+typedef enum
+{
     EX_SUCCESS,
     EX_EXEC_ERROR,
     EX_FORK_ERROR,
@@ -24,8 +24,10 @@ typedef enum {
 } ExitStatus;
 
 
-inline int generate_iterations(pid_t pid) {
-    srand(time(NULL)); // Generates a random seed
+inline int
+generate_iterations(pid_t pid)
+{
+    srand(pid); // Generates a random seed
 
     int iterations = (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
     printf("Max Iterations of Process %d: %d\n", pid, iterations);
@@ -33,11 +35,17 @@ inline int generate_iterations(pid_t pid) {
     return iterations;
 };
 
-int main(int argc, char *argv[]) {
-    pid_t my_pid = argv[0];
-    printf("[Process %d Running]\n", my_pid);
 
-    int max_iterations = generate_iterations(my_pid);
+int
+main(int argc, char *argv[])
+{
+    pid_t pid = atoi(argv[1]);
+    printf("[Process %d Running]\n", pid);
+
+    int kernel_pipe = atoi(argv[2]);
+    int brother_pipe = atoi(argv[3]);
+
+    int max_iterations = generate_iterations(pid);
 
     return 0;
 }

@@ -1,0 +1,1 @@
+// Fazer signals que serão enviados aqui (typedef enum)

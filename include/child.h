@@ -1,0 +1,1 @@
+// signals que a child vai usar para comunicar com o kernel

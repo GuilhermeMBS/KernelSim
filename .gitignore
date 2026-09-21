@@ -1,2 +1,7 @@
 # Hidden files in Windows that shows in Linux
 *:Zone.Identifier
+
+# Builded files
+build/
+bin/
+*.o

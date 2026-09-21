@@ -5,15 +5,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-typedef enum {
-    EX_SUCCESS,
-    EX_EXEC_ERROR,
-    EX_FORK_ERROR
-} ExitStatus;
+#include "intercontroller.h"
 
 
-int main() {
-    puts("[Inter Controller Running]");
+int
+main() 
+{
 
 
     return 0;
