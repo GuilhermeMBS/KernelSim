@@ -27,13 +27,19 @@
 #define WRITE 1
 
 
+static pcb_child_t children[NUM_CHILDREN];
+static pcb_controller_t controller;
+// static pt to next process to run or to current? (will it be sequence?)
+// static number of iterations 
+
+
 static retcode_t
-_kernelsim_build_child_pipes(pcb_child_t* procs)
+_kernelsim_build_child_pipes()
 {
-    puts("Building Children Pipes...");
+    printf("Building %d Children Pipes...\n", NUM_CHILDREN);
     for (int i = 0; i < NUM_CHILDREN; i++) {
-        pipe_make(&(procs[i].child));
-        pipe_make(&(procs[i].brother));
+        pipe_make(&(children[i].child));
+        pipe_make(&(children[i].brother));
     }
     puts("Children Pipes Ready.");
 
@@ -42,10 +48,10 @@ _kernelsim_build_child_pipes(pcb_child_t* procs)
 
 
 static retcode_t
-_kernelsim_build_controller_pipes(pcb_controller_t* proc)
+_kernelsim_build_controller_pipes()
 {
     puts("Building Intercontroller Pipes...");
-    pipe_make(&proc->child);
+    pipe_make(&controller.child);
     puts("Intercontroller Pipes Ready.");
 
     return SUCCESS;
@@ -53,36 +59,38 @@ _kernelsim_build_controller_pipes(pcb_controller_t* proc)
 
 
 static retcode_t
-_kernelsim_exec_child(pcb_child_t* procs)
+_kernelsim_exec_child()
 {
     for (int i = 0; i < NUM_CHILDREN; i++) {
         pid_t pid = fork();
 
         if (pid > 0) {
             // Set PCB Struct
-            procs[i].pid   = pid;
-            procs[i].time  = 0;
-            procs[i].state = WAIT;
+            children[i].pid   = pid;
+            children[i].time  = 0;
+            children[i].PC    = 0;
+            children[i].N     = 0;
+            children[i].state = PCB_STATE_WAIT;
 
             // Close Child Unused Pipe Ends
-            close(procs[i].child.to[READ]);
-            close(procs[i].child.from[WRITE]);
+            close(children[i].child.to[READ]);
+            close(children[i].child.from[WRITE]);
 
             // Close Brother Pipe Ends
-            close(procs[i].brother.to[READ]);
-            close(procs[i].brother.to[WRITE]);
-            close(procs[i].brother.from[READ]);
-            close(procs[i].brother.from[WRITE]);
+            close(children[i].brother.to[READ]);
+            close(children[i].brother.to[WRITE]);
+            close(children[i].brother.from[READ]);
+            close(children[i].brother.from[WRITE]);
         }
 
         else if (pid == 0) {
             // Close Unused Pipe Ends
-            close(procs[i].child.to[WRITE]);
-            close(procs[i].child.from[READ]);
+            close(children[i].child.to[WRITE]);
+            close(children[i].child.from[READ]);
 
             char read_fd_str[16], write_fd_str[16], id_str[16];
-            snprintf(read_fd_str, sizeof(read_fd_str), "%d", procs[i].child.to[READ]);
-            snprintf(write_fd_str, sizeof(write_fd_str), "%d", procs[i].child.from[WRITE]);
+            snprintf(read_fd_str, sizeof(read_fd_str), "%d", children[i].child.to[READ]);
+            snprintf(write_fd_str, sizeof(write_fd_str), "%d", children[i].child.from[WRITE]);
             snprintf(id_str, sizeof(id_str), "%d", i);
 
             execl("./bin/child", "child", id_str, read_fd_str, write_fd_str, NULL);
@@ -99,28 +107,28 @@ _kernelsim_exec_child(pcb_child_t* procs)
 
 
 static retcode_t
-_kernelsim_exec_controller(pcb_controller_t* proc)
+_kernelsim_exec_controller()
 {
     pid_t pid = fork();
 
     if (pid > 0) {
-        proc->pid = pid;
+        controller.pid = pid;
 
         // Close Unused Pipe Ends
-        close(proc->child.to[READ]);
-        close(proc->child.from[WRITE]);
+        close(controller.child.to[READ]);
+        close(controller.child.from[WRITE]);
     }
 
     else if (pid == 0) {
         // Redirects the Read End of (Kernel --> Controller) to STDOUT
-        dup2(proc->child.to[READ], STDOUT_FILENO);
+        dup2(controller.child.to[READ], STDIN_FILENO);
 
         // Redirects the Write End of (Controller --> Kernel) to STDIN
-        dup2(proc->child.from[WRITE], STDIN_FILENO);
+        dup2(controller.child.from[WRITE], STDOUT_FILENO);
 
         // Close Unused Pipe Ends
-        close(proc->child.to[WRITE]);
-        close(proc->child.from[READ]);
+        close(controller.child.to[WRITE]);
+        close(controller.child.from[READ]);
 
         // Replace process image with the child binary
         char id_str[16];
@@ -141,24 +149,86 @@ _kernelsim_exec_controller(pcb_controller_t* proc)
 }
 
 
-retcode_t 
-kernelsim_init() 
+static inline void
+_kernelsim_pause_controller()
 {
-    // Build Pipes
-    _kernelsim_build_child_pipes(processes);
-    _kernelsim_build_controller_pipes(&controller);
+    kill(controller.pid, SIGSTOP);
 
-    // Create Processes
-    _kernelsim_exec_child(processes);
-    _kernelsim_exec_controller(&controller);
+}
+
+
+static retcode_t
+_kernelsim_pause_children()
+{
+    for(int i = 0; i < NUM_CHILDREN; i++) {
+        // if State = Running --> Pause (or new state?)
+        // save index in curr or next?
+        kill(children[i].pid, SIGSTOP);
+    }
 
     return SUCCESS;
 }
 
 
-retcode_t 
+static inline void
+_kernelsim_resume_controller()
+{
+    kill(controller.pid, SIGCONT);
+}
+
+
+static retcode_t
+_kernelsim_resume_children()
+{
+    for(int i = 0; i < NUM_CHILDREN; i++) {
+        // if State = Running --> Pause
+        kill(children[i].pid, SIGSTOP);
+    }
+
+    return SUCCESS;
+}
+
+
+void
+kernelsim_init() 
+{
+    // Build Pipes
+    _kernelsim_build_child_pipes();
+    _kernelsim_build_controller_pipes();
+
+    // Create Processes
+    _kernelsim_exec_child();
+    _kernelsim_exec_controller();
+
+    // Check errors to exit (here or in functions?)
+}
+
+
+void 
 kernelsim_start() 
 {
-    // Send signal to continue processes
-    return SUCCESS;
+    // Function to show initial processes states AND FLAGS
+    _kernelsim_resume_controller();
+    _kernelsim_resume_children();
+}
+
+
+void 
+kernelsim_state() 
+{
+    // Shows all states
+}
+
+void
+kernelsim_pause()
+{
+    _kernelsim_pause_controller();
+    _kernelsim_pause_children();
+}
+
+void
+kernelsim_resume()
+{
+    _kernelsim_resume_controller();
+    _kernelsim_resume_children();
 }

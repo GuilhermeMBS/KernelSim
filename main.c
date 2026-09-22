@@ -25,13 +25,14 @@ handle_sig(int signal)
         }
 
         if (running) {
-            puts("[Pausing Kernel Simulation...]");
             kernelsim_pause();
             puts("[Kernel Simulation Paused]");
-
             running = FALSE;
+
+            kernelsim_state();
             exit(0);
         }
+
         else {
             puts("[Resuming Kernel Simulation...]");
             kernelsim_resume();
@@ -59,16 +60,17 @@ wait_enter(const char *msg)
 int 
 main(void)
 {
+    // Verificação de Sinais do Handler
+
     puts("[Building Kernel Simulation]");
     kernelsim_init();
     puts("[Kernel Simulation Ready]");
 
-    kernelsim_show();
     wait_enter("[Press ENTER to Start Simulation]");
 
     puts("[Starting Kernel Simulation]");
     kernelsim_start();
-    started = TRUE;
 
+    started = TRUE;
     return 0;
 }

@@ -39,24 +39,25 @@ _intercontroller_generate_probability()
 }
 
 
+inline static void
+_intercontroller_send(IntercontrollerSig signal)
+{
+    fflush(stdout);
+    printf("%d", signal);
+    fflush(stdout);
+}
+
+
 int
 main(void)
 {
-    printf("[Intercontroller Running]");
-
     while (TRUE) {
         usleep(time_slice);
         int prob = _intercontroller_generate_probability();
 
-        if (prob < 5) {
-            // IQR2
-        }
-
-        if (prob < 15) {
-            // IQR1
-        }
-
-        // send IQR0
+        if (prob < 5) _intercontroller_send(INTERCONTROLLER_SIG_IQR2);
+        if (prob < 15) _intercontroller_send(INTERCONTROLLER_SIG_IQR1);
+        _intercontroller_send(INTERCONTROLLER_SIG_IQR0);
     }
 
     return 0;

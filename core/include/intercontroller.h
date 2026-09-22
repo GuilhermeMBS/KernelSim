@@ -13,9 +13,10 @@
 
 typedef enum
 {
-    IQR0 = 3, // Time Slice
-    IQR1 = 5, // recv()
-    IQR2 = 7  // send()
-} INTERCONTROLLER_IQR;
+    INTERCONTROLLER_SIG_IQR0,   // Time Slice
+    INTERCONTROLLER_SIG_IQR1,   // recv()
+    INTERCONTROLLER_SIG_IQR2,   // send()
+    INTERCONTROLLER_SIG_ERROR
+} IntercontrollerSig;
 
 # endif

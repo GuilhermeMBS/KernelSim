@@ -22,13 +22,9 @@
 #define MAX_ITER 10000
 #define MIN_ITER 5000
 
-typedef enum
-{
-    EX_SUCCESS,
-    EX_EXEC_ERROR,
-    EX_FORK_ERROR,
-    EX_WAIT_ERROR
-} ExitStatus;
+
+static int PC = 0; // Process Counter
+static int N = 0;  // Brother Counter
 
 
 inline int

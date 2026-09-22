@@ -20,7 +20,17 @@ Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kerne
 
 ----------------------------------------------------------------------
 
-1. Colocar prints como logs e flag de debug
+Falta implementar todas as pipes (espera e o que vai vir delas)
+
+1. Colocar prints como logs e flag de debug (X-Macro?)
 2. Colocar maneira de rodar executável enquanto kernel em paralelo pelo terminal
 3. Documentar tudo
-4. Fazer testes?
+4. Fazer testes (intercontroller teste independente)?
+5. Conferir encapsulamentos (fazer diagrama)
+
+Filho:
+A) Gera um send/recv
+B) Joga na pipe da dupla
+C) Manda na pipe do Kernel
+D) Pausa?
+E) Kernel recebe e manda um SIGSTOP e depois muda o estado dele
