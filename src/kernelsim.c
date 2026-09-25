@@ -20,8 +20,8 @@
 
 #include "include/intercontroller.h"
 #include "include/kernelsim.h"
-#include "include/retcode.h"
-#include "include/pcb.h"
+#include "aux/retcode.h"
+#include "aux/pcb.h"
 
 #define READ  0
 #define WRITE 1
