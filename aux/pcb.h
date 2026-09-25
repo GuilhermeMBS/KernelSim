@@ -16,12 +16,12 @@ typedef enum
 typedef struct
 {
     pipe_t child;
-    pipe_t brother;
+    // pipe_t brother;
     pid_t pid;
     int state;
     int time;       // Remaining time
-    int PC;         // Process Counter
-    int N;          // Brother Counter
+    // int PC;         // Process Counter
+    // int N;          // Brother Counter
 } pcb_child_t;
 
 typedef struct

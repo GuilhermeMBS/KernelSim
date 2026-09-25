@@ -39,7 +39,7 @@ _kernelsim_build_child_pipes()
     printf("Building %d Children Pipes...\n", NUM_CHILDREN);
     for (int i = 0; i < NUM_CHILDREN; i++) {
         pipe_make(&(children[i].child));
-        pipe_make(&(children[i].brother));
+        // pipe_make(&(children[i].brother));
     }
     puts("Children Pipes Ready.");
 
@@ -68,19 +68,19 @@ _kernelsim_exec_child()
             // Set PCB Struct
             children[i].pid   = pid;
             children[i].time  = 0;
-            children[i].PC    = 0;
-            children[i].N     = 0;
+            // children[i].PC    = 0;
+            // children[i].N     = 0;
             children[i].state = PCB_STATE_WAIT;
 
             // Close Child Unused Pipe Ends
             close(children[i].child.to[READ]);
             close(children[i].child.from[WRITE]);
 
-            // Close Brother Pipe Ends
-            close(children[i].brother.to[READ]);
-            close(children[i].brother.to[WRITE]);
-            close(children[i].brother.from[READ]);
-            close(children[i].brother.from[WRITE]);
+            // // Close Brother Pipe Ends
+            // close(children[i].brother.to[READ]);
+            // close(children[i].brother.to[WRITE]);
+            // close(children[i].brother.from[READ]);
+            // close(children[i].brother.from[WRITE]);
         }
 
         else if (pid == 0) {

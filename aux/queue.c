@@ -29,8 +29,10 @@ queue_get(queue_t q)
         printf("[Queue Get] Empty Queue!");
         return -1;
     }
-
-    return q.buffer[q.start++];
+    
+    int idx = q.start;
+    q.start = (q.start + 1) % q.size;
+    return q.buffer[idx];
 }
 
 #undef IS_FULL
