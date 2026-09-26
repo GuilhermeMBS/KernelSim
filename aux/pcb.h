@@ -4,6 +4,7 @@
 #include <signal.h>
 
 #include "pipe.h"
+#include "queue.h"
 
 
 typedef enum
@@ -15,13 +16,11 @@ typedef enum
 
 typedef struct
 {
+    queue_t* brother;
     pipe_t child;
-    // pipe_t brother;
     pid_t pid;
     int state;
-    int time;       // Remaining time
-    // int PC;         // Process Counter
-    // int N;          // Brother Counter
+    int time;           // Remaining time
 } pcb_child_t;
 
 typedef struct

@@ -7,10 +7,6 @@
  * our "fake" Kernel.
 */
 
-
-/**
- * Receber IQR1 ou IQR2 sem ninguém precisando, Kernel perde a chamada
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -20,18 +16,34 @@
 
 #include "include/intercontroller.h"
 #include "include/kernelsim.h"
+#include "aux/kernelsim_params.h"
 #include "aux/retcode.h"
 #include "aux/pcb.h"
+#include "aux/queue.h"
 
 #define READ  0
 #define WRITE 1
+#define BROTHER_PIPES(id) brother_p##id
 
 
 static pcb_child_t children[NUM_CHILDREN];
 static pcb_controller_t controller;
-// static pt to next process to run or to current? (will it be sequence?)
-// static number of iterations 
 
+QUEUE_INIT(waiting_send, NUM_CHILDREN);
+QUEUE_INIT(waiting_recieve, NUM_CHILDREN);
+QUEUE_INIT(controller_sig, 3);
+
+// Allocate brother pipes
+#define X(id) QUEUE_INIT(BROTHER_PIPES(id), BROTHER_PIPE_SIZE);
+CHILDREN_LIST
+#undef X
+
+// Array of brother pipes
+static queue_t *brother_pipes[] = {
+#define X(id) &BROTHER_PIPES(id),
+    CHILDREN_LIST
+#undef X
+};
 
 static retcode_t
 _kernelsim_build_child_pipes()
@@ -39,7 +51,6 @@ _kernelsim_build_child_pipes()
     printf("Building %d Children Pipes...\n", NUM_CHILDREN);
     for (int i = 0; i < NUM_CHILDREN; i++) {
         pipe_make(&(children[i].child));
-        // pipe_make(&(children[i].brother));
     }
     puts("Children Pipes Ready.");
 
@@ -66,21 +77,14 @@ _kernelsim_exec_child()
 
         if (pid > 0) {
             // Set PCB Struct
-            children[i].pid   = pid;
-            children[i].time  = 0;
-            // children[i].PC    = 0;
-            // children[i].N     = 0;
-            children[i].state = PCB_STATE_WAIT;
+            children[i].brother = brother_pipes[i];
+            children[i].pid     = pid;
+            children[i].time    = 0;
+            children[i].state   = PCB_STATE_WAIT;
 
             // Close Child Unused Pipe Ends
             close(children[i].child.to[READ]);
             close(children[i].child.from[WRITE]);
-
-            // // Close Brother Pipe Ends
-            // close(children[i].brother.to[READ]);
-            // close(children[i].brother.to[WRITE]);
-            // close(children[i].brother.from[READ]);
-            // close(children[i].brother.from[WRITE]);
         }
 
         else if (pid == 0) {
@@ -232,3 +236,6 @@ kernelsim_resume()
     _kernelsim_resume_controller();
     _kernelsim_resume_children();
 }
+
+#undef WRITE
+#undef READ

@@ -51,6 +51,8 @@ _intercontroller_send(IntercontrollerSig signal)
 int
 main(void)
 {
+    raise(SIGSTOP);
+    
     while (TRUE) {
         usleep(time_slice);
         int prob = _intercontroller_generate_probability();
