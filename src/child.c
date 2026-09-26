@@ -19,12 +19,14 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#define MAX_ITER 10000
-#define MIN_ITER 5000
+#define MAX_ITER        10000
+#define MIN_ITER        5000
+#define SLEEP_TIME      5e5     // Sleep time in micro seconds
+#define SYSCALL_PROB    15      // Probability of a syscall in percentage
 
 
-static int PC = 0; // Process Counter
-static int N = 0;  // Brother Counter
+static int PC = 0; // Process iteration counter
+static int N = 0;  // Brother iteration counter
 
 
 inline int
@@ -40,15 +42,43 @@ generate_iterations(pid_t pid)
 
 
 int
+child_loop(int max_iterations)
+{
+    while (PC < max_iterations) {
+        PC++;
+        usleep(SLEEP_TIME);
+
+        int prob = rand() % 100;
+        if (prob < SYSCALL_PROB) {
+                if (prob % 2) {
+                    // recv no pipe para pegar o N do irmão
+                }
+                else {
+                    // send no pipe para enviar seu PC
+                }          
+                
+                // generate syscall (Op,Data)
+            }
+        
+        usleep(SLEEP_TIME);
+    }
+}
+
+
+int
 main(int argc, char *argv[])
 {
     pid_t pid = atoi(argv[1]);
     printf("[Process %d Running]\n", pid);
 
-    int kernel_pipe = atoi(argv[2]);
-    int brother_pipe = atoi(argv[3]);
+    int read_pipe = atoi(argv[2]);
+    int write_pipe = atoi(argv[3]);
 
     int max_iterations = generate_iterations(pid);
+    printf("[Process %d] Max Iterations: %d\n", pid, max_iterations);
+
+    raise(SIGSTOP);
+    child_loop(max_iterations);
 
     return 0;
 }
