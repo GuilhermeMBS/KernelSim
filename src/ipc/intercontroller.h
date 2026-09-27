@@ -1,5 +1,9 @@
+#pragma once
+
 #ifndef INTERCONTROLLER_H
 #define INTERCONTROLLER_H
+
+#define TIME_SLICE 500  // Frequency for IQR0 (in ms)
 
 typedef enum
 {

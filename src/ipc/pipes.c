@@ -1,5 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "pipes.h"
-#include "utils/debug.h"
 
 
 DebugRet pipe_make(pipe_t* p) {
