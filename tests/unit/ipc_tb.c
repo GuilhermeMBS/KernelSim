@@ -112,7 +112,7 @@ static pid_t start_intercontroller(int *read_fd)
 
 static void stop_intercontroller(pid_t pid, int fd)
 {
-    kill(pid, SIGTERM);
+    kill(pid, SIGKILL);
 
     close(fd);
 
@@ -140,8 +140,6 @@ static void test_starts_stopped(void)
 
     assert(result == pid);
     assert(WIFSTOPPED(status)); // Verify if it was stopped by a signal
-
-    kill(pid, SIGCONT);
 
     stop_intercontroller(pid, fd);
 

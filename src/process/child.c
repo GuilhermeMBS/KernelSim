@@ -15,19 +15,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
 #include <unistd.h>
+#include <time.h>
 
-#include "child.h"
-
+#include "process/child.h"
+#include "utils/debug.h"
 
 #define MAX_ITER        10000
 #define MIN_ITER        5000
-#define SLEEP_TIME      5e5     // Sleep time in micro seconds
-#define SYSCALL_PROB    15      // Probability of a syscall in percentage
+#define SLEEP_TIME      500     // Time in ms
+#define SYSCALL_PROB    85      // Probability of a syscall in percentage
 
 
-static int PC = 0; // Process iteration counter
-static int N = 0;  // Brother iteration counter
+static int shm_id;
+static child_data_t *own_data;
 static int read_pipe;
 static int write_pipe;
 
@@ -36,36 +39,38 @@ static inline int
 _generate_iterations(pid_t pid)
 {
     srand(pid); // Generates a random seed
-
     int iterations = (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
-    printf("[CHILD %d] Max Iterations: %d\n", pid, iterations);
-
     return iterations;
-};
+}
 
 
-static int
+static DebugRet
 _child_syscall(ChildOp OP)
 {
-    child_data_t data = {.op = OP, .pc = PC};
-    ssize_t bytes_written = write(write_pipe, &data, sizeof(data));
+    printf("[SYSCALL | PC %d] Write OP %d Successful\n", own_data->pc, OP);
 
-    if (bytes_written == -1) {
-        printf("[SYSCALL | PC %d] Write Failed", PC);
-        return -1;
+    ChildOp tmp = OP;
+    ssize_t bytes_written = write(write_pipe, &tmp, sizeof(tmp));
+    if (bytes_written == -1)
+    {
+        perror("[SYSCALL] Write/Read Failed\n");
+        exit(DEBUG_RET_ERR_SYSCALL);
     }
-    else printf("[SYSCALL | PC %d] Write OP %d Successful", PC, OP);
 
-    return 1;
-};
+    return DEBUG_RET_SUCCESS;
+}
 
 
 static int
 _child_loop(int max_iterations)
 {
-    while (PC < max_iterations) {
-        PC++;
-        usleep(SLEEP_TIME);
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = SLEEP_TIME * 1e6;
+
+    while (own_data->pc < max_iterations) {
+        own_data->pc++;
+        nanosleep(&ts, NULL);
 
         int prob = rand() % 100;
         if (prob < SYSCALL_PROB) {
@@ -75,30 +80,45 @@ _child_loop(int max_iterations)
                 int brother_n;
                 ssize_t bytes_read = read(read_pipe, &brother_n, sizeof(brother_n));
                 if (bytes_read == -1) {
-                    printf("[PIPE | PC %d] Read Failed", PC);
+                    printf("[PIPE | PC %d] Read Failed\n", own_data->pc);
                     return -1;
                 }
                 
-                if (brother_n == 0) printf("[PIPE | PC %d] Read Pipe Empty", PC);
-                else N = brother_n;
+                if (brother_n == 0) printf("[PIPE | PC %d] Read Pipe Empty\n", own_data->pc);
+                else own_data->n = brother_n;
             }
-            // Write Syscall
+            // Write Syscall1
             else _child_syscall(CHILD_OP_WRITE);
         }
         
-        usleep(SLEEP_TIME);
+        nanosleep(&ts, NULL);
     }
+    return 0;
 }
 
 
 int
 main(int argc, char *argv[])
 {
-    pid_t pid = atoi(argv[1]);
+    if (argc != 4)
+    {
+        perror("Wrong amount of arguments.\n\t.\\child pipe_fd[0] pipe_fd[1] shm_id");
+        exit(DEBUG_RET_EXEC_ERROR);
+    }
+    
+    pid_t pid = getpid();
     printf("[Process %d Running]\n", pid);
 
-    read_pipe = atoi(argv[2]);
-    write_pipe = atoi(argv[3]);
+    read_pipe   = atoi(argv[1]);
+    write_pipe  = atoi(argv[2]);
+    shm_id      = atoi(argv[3]);
+
+    own_data = (child_data_t *)shmat(shm_id, NULL, 0);
+    if (own_data == (void*)-1)
+    {
+        perror("[SHM] Shmat error");
+        exit(DEBUG_RET_ERR_SHM);
+    }
 
     int max_iterations = _generate_iterations(pid);
     printf("[Process %d] Max Iterations: %d\n", pid, max_iterations);
