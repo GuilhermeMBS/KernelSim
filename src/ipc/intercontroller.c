@@ -7,19 +7,17 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 
 #include "intercontroller.h"
 
 
-#define PROB_1 10     // Probability of Signal IQR1 to Happen (in percent)
-#define PROB_2 5      // Probability of Signal IQR2 to Happen (in percent)
+#define TIME_SLICE 500  // Frequency for IQR0 (in ms)
+#define PROB_1 10       // Probability of Signal IQR1 to Happen (in %)
+#define PROB_2 5        // Probability of Signal IQR2 to Happen (in %)
 #define RAND_SEED 0     // Random Seed Flag (1 = True / 0 = False)
 #define TRUE  1
 #define FALSE 0
