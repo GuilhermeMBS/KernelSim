@@ -11,8 +11,7 @@ Capacidade global de arquivos: controlada em /proc/sys/fs/file-max.
 Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kernel (no Linux, o buffer padrão é de 64 KB por pipe). O Kernel impõe um limite máximo de páginas alocadas para pipes por usuário não-root (visível em /proc/sys/fs/pipe-user-pages-hard). Criar centenas de milhares de pipes consumiria rapidamente a memória física do sistema.
 ----------------------------------------------------------------------
 
-1. Colocar prints como logs e flag de debug (X-Macro)
-2. Documentar tudo
-3. Fazer testes (intercontroller teste independente?)
-4. Conferir encapsulamentos (fazer diagrama)
-5. Colocar maneira de rodar executável enquanto kernel em paralelo pelo terminal
+FALTA FAZER:
+1. Colocar prints como logs da flag de debug;
+2. Trocar tipos por portáteis (int32_t, etc);
+3. Colocar documentação em .md

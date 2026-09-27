@@ -269,29 +269,40 @@ _kernelsim_engine()
     }
 
     // Intercontroller Signal
-    int signal;
-    int bytes_read = read(fds[POLL_IC_IDX].fd, &signal, sizeof(int));
     if (fds[POLL_IC_IDX].revents & POLLIN) {
+        char signal_char;
+        // Lê exatamente 1 byte, como enviado pelo printf("%d") do Intercontroller
+        int bytes_read = read(fds[POLL_IC_IDX].fd, &signal_char, 1);
+        
         if (bytes_read > 0) {
-            printf("[INTERCONTROLLER] IQR%d\n", signal);
-            _kernelsim_handle_iqr(signal);
+            // Converte o char ASCII de volta para um valor inteiro (0, 1 ou 2)
+            int signal = signal_char - '0';
+            printf("[INTERCONTROLLER] IRQ%d\n", signal);
+            _kernelsim_handle_irq(signal);
         }
-        else if (bytes_read == 0) puts("[INTERCONTROLLER] Closed Pipe!");
+        else if (bytes_read == 0) {
+            puts("[INTERCONTROLLER] Closed Pipe!");
+        }
     }
 
     // Children Signal
-    ChildOp op;
-    int bytes_read = read(fds[curr_child].fd, &op, sizeof(ChildOp));
+    // Assumindo que curr_child foi definido corretamente antes desta verificação
     if (fds[curr_child].revents & POLLIN) {
+        ChildOp op;
+        // Aqui sizeof(ChildOp) faz sentido SE a aplicação filha enviou a struct crua via write()
+        int bytes_read = read(fds[curr_child].fd, &op, sizeof(ChildOp));
+        
         if (bytes_read > 0) {
             printf("[Child %d] Syscall OP%d\n", curr_child, op);
             _kernelsim_handle_syscall(op);
         }
-        else if (bytes_read == 0) printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
+        else if (bytes_read == 0) {
+            printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
+        }
     }
 
     #undef POLL_SIZE
-    #undef POLL_IC_IDX (POLL_SIZE - 1)
+    #undef POLL_IC_IDX
 }
 
 

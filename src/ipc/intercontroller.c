@@ -1,75 +1,73 @@
 /**
- * Um IRQ0 (TimeSlice) a cada 500 ms (use sleep() dentro do corpo do loop) 
- * Um IRQ1 com probabilidade P_1 = 0.1 (a cada 500 ms)
- * probabilidade de um recv() ser concluído
- * Um IRQ2 com probabilidade P_2 = 0.05 (a cada 500 ms)
- * probabilidade de um send() terminar
-*/
+ * @file intercontroller.c
+ * @brief Implementation of the interrupt controller emulator.
+ *
+ * This file implements the main loop of the InterController Sim process.
+ * It simulates a hardware interrupt controller by periodically generating
+ * an IRQ0 signal for context switching, and probabilistically generating
+ * IRQ1 and IRQ2 signals to emulate the completion of read and write
+ * IPC operations.
+ */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
 
 #include "intercontroller.h"
 
+#define PROB_1 10       // Probability of Signal IRQ1 to happen (in %)
+#define PROB_2 5        // Probability of Signal IRQ2 to happen (in %)
+#define RAND_SEED 1     // Random Seed Flag (1 = True / 0 = False)
 
-#define TIME_SLICE 500  // Frequency for IRQ0 (in ms)
-#define PROB_1 10       // Probability of Signal IRQ1 to Happen (in %)
-#define PROB_2 5        // Probability of Signal IRQ2 to Happen (in %)
-#define RAND_SEED 0     // Random Seed Flag (1 = True / 0 = False)
-#define TRUE  1
-#define FALSE 0
-
-
-const int prob_1 = PROB_1;
-const int prob_2 = PROB_2;
-
-
-static int
-_intercontroller_generate_probability()
-{
-    #if RAND_SEED
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    unsigned int seed = (unsigned int)(ts.tv_sec ^ ts.tv_nsec);
-    srand(seed);
-    #endif
-
-    return (rand() % 100);
-}
-
-
-inline static void
-_intercontroller_send(IntercontrollerSig signal)
+/**
+ * @brief Sends an interrupt signal to the standard output.
+ * 
+ * Emulates the triggering of an IRQ by piping its enum value to stdout,
+ * forcing a flush to ensure immediate delivery to KernelSim. No newline
+ * is appended, expecting the receiver to read exactly 1 byte.
+ * 
+ * @param signal The interrupt signal to be sent.
+ */
+static inline void _intercontroller_send(IntercontrollerSig signal)
 {
     fflush(stdout);
     printf("%d", signal);
     fflush(stdout);
 }
 
-
-int
-main(void)
+/**
+ * @brief Main execution loop for the interrupt controller simulator.
+ */
+int main(void)
 {
     struct timespec ts;
+    
+    // Configure the time slice interval
     ts.tv_sec = TIME_SLICE / 1000;
-    ts.tv_nsec = (TIME_SLICE % 1000) * 1e6;
+    ts.tv_nsec = (TIME_SLICE % 1000) * 1000000L;
     
-    raise(SIGSTOP);
-    
-    while (TRUE) {
-        nanosleep(&ts, NULL);
+#if RAND_SEED
+    struct timespec seed_ts;
+    clock_gettime(CLOCK_MONOTONIC, &seed_ts);
+    unsigned int seed = (unsigned int)(seed_ts.tv_sec ^ seed_ts.tv_nsec);
+    srand(seed);
+#endif
 
+    raise(SIGSTOP); // Suspends until KernelSim sends SIGCONT
+    while (true) {
+        nanosleep(&ts, NULL);
         _intercontroller_send(INTERCONTROLLER_SIG_IRQ0);
         
-        int prob = _intercontroller_generate_probability();
+        int prob_recv = (rand() % 100);
+        int prob_send = (rand() % 100);
 
-        if (prob < prob_2) _intercontroller_send(INTERCONTROLLER_SIG_IRQ2);
-        if (prob < prob_1) _intercontroller_send(INTERCONTROLLER_SIG_IRQ1);
-    }
+        if (prob_recv < PROB_1) _intercontroller_send(INTERCONTROLLER_SIG_IRQ1);
+        if (prob_send < PROB_2) _intercontroller_send(INTERCONTROLLER_SIG_IRQ2);
+    }int32_
 
     return 0;
 }

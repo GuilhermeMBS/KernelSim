@@ -11,12 +11,12 @@ TEST_BIN_DIR := $(BIN_DIR)/tests
 # Tests
 # =========================
 
-$(TEST_BIN_DIR)/ipc_tb: tests/unit/ipc_tb.c $(BIN_DIR)/intercontroller
+$(TEST_BIN_DIR)/test_intercontroller: tests/unit/test_intercontroller.c $(BIN_DIR)/intercontroller
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
-ipc_tb: $(TEST_BIN_DIR)/ipc_tb
-	./$(TEST_BIN_DIR)/ipc_tb
+test_intercontroller: $(TEST_BIN_DIR)/test_intercontroller
+	./$(TEST_BIN_DIR)/test_intercontroller
 
 $(TEST_BIN_DIR)/pipe_tb: tests/unit/pipe_tb.c src/ipc/pipes.c
 	@mkdir -p $(TEST_BIN_DIR)
@@ -70,4 +70,4 @@ $(BUILD_DIR)/%.o: src/%.c
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean ipc_tb pipe_tb queue_tb
+.PHONY: all clean test_intercontroller pipe_tb queue_tb
