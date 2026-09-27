@@ -39,9 +39,6 @@ static inline void _intercontroller_send(IntercontrollerSig signal)
     fflush(stdout);
 }
 
-/**
- * @brief Main execution loop for the interrupt controller simulator.
- */
 int main(void)
 {
     struct timespec ts;
@@ -67,7 +64,7 @@ int main(void)
 
         if (prob_recv < PROB_1) _intercontroller_send(INTERCONTROLLER_SIG_IRQ1);
         if (prob_send < PROB_2) _intercontroller_send(INTERCONTROLLER_SIG_IRQ2);
-    }int32_
+    }
 
     return 0;
 }

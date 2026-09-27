@@ -341,6 +341,7 @@ _kernelsim_exec_child()
             snprintf(id_str, sizeof(id_str), "%d", i);
 
             // execl("./bin/child", "child", id_str, read_fd_str, write_fd_str, NULL);
+            exit(0);
         }
 
         else {

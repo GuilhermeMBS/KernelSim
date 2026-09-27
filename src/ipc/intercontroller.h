@@ -1,24 +1,22 @@
-/**
- * @file intercontroller.h
- * @brief Interrupt controller emulator signal definitions.
+/** @file intercontroller.h
+ *  @brief Interrupt controller emulator signal definitions.
  *
- * This header defines the signaling constants used by the InterController Sim 
- * process. The emulator is responsible for generating periodic time-slice 
- * interrupts (clock) and signaling the completion of inter-process communication 
- * (IPC) read and write operations on the pipes.
+ *  This header defines the signaling constants used by the InterController Sim 
+ *  process. The emulator is responsible for generating periodic time-slice 
+ *  interrupts (clock) and signaling the completion of inter-process communication 
+ *  (IPC) read and write operations on the pipes.
  */
 
 #ifndef INTERCONTROLLER_H
 #define INTERCONTROLLER_H
 
 /**
- * @def TIME_SLICE
  * @brief Time-slice frequency for the scheduler.
  *
  * Defines the time interval (in milliseconds) for the periodic generation 
  * of the IRQ0 interrupt, which dictates the round-robin time-slice.
  */
-#define TIME_SLICE 500  // Frequency for IRQ0 (in ms)
+#define TIME_SLICE 500
 
 /**
  * @brief System interrupt signal enumerations.

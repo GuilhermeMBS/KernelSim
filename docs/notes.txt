@@ -12,6 +12,7 @@ Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kerne
 ----------------------------------------------------------------------
 
 FALTA FAZER:
-1. Colocar prints como logs da flag de debug;
-2. Trocar tipos por portáteis (int32_t, etc);
-3. Colocar documentação em .md
+1. Fazer rotina de encerramento do programa
+2. Colocar prints como logs da flag de debug;
+3. Trocar tipos por portáteis (int32_t, etc);
+4. Colocar documentação em .md
