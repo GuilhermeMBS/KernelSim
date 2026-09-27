@@ -8,13 +8,10 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
 #include <poll.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <stdbool.h>
 
 #include "kernelsim.h"
@@ -85,7 +82,7 @@ static void
 _kernelsim_handle_iqr(IntercontrollerSig signal)
 {
     switch (signal) {
-        case INTERCONTROLLER_SIG_IQR0:
+        case INTERCONTROLLER_SIG_IRQ0:
             kill(children[curr_child].pid, SIGSTOP);
             queue_put(&children_ready, curr_child);
             int curr_child = queue_get(&children_ready);
@@ -93,24 +90,26 @@ _kernelsim_handle_iqr(IntercontrollerSig signal)
             kill(children[curr_child].pid, SIGCONT);
             break;
 
-        case INTERCONTROLLER_SIG_IQR1:
-            int child_to_move = queue_get(&children_send);
-            if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
-                queue_put(&children_ready, child_to_move);
-                queue_put(
-                    children[BROTHER_IDX(child_to_move)].brother,
-                    children[child_to_move].data
-                );
-            }
-            break;
-        
-        case INTERCONTROLLER_SIG_IQR2:
+        // Write
+        case INTERCONTROLLER_SIG_IRQ1:
             int child_to_move = queue_get(&children_recv);
             if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
                 queue_put(&children_ready, child_to_move);
                 write(children[child_to_move].child.to[WRITE],
                     children[child_to_move].brother,
                     sizeof(int)
+                );
+            }
+            break;
+        
+        // Read
+        case INTERCONTROLLER_SIG_IRQ2:
+            int child_to_move = queue_get(&children_send);
+            if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
+                queue_put(&children_ready, child_to_move);
+                queue_put(
+                    children[BROTHER_IDX(child_to_move)].brother,
+                    children[child_to_move].data
                 );
             }
             break;

@@ -7,27 +7,24 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 
 #include "intercontroller.h"
 
 
 #define TIME_SLICE 500  // Frequency for IQR0 (in ms)
-#define PROB_1 0.10     // Probability of Signal IQR1 to Happen
-#define PROB_2 0.05     // Probability of Signal IQR2 to Happen
+#define PROB_1 10       // Probability of Signal IQR1 to Happen (in %)
+#define PROB_2 5        // Probability of Signal IQR2 to Happen (in %)
 #define RAND_SEED 0     // Random Seed Flag (1 = True / 0 = False)
 #define TRUE  1
 #define FALSE 0
 
 
-const float prob_1 = PROB_1;
-const float prob_2 = PROB_2;
+const int prob_1 = PROB_1;
+const int prob_2 = PROB_2;
 const uint64_t time_slice = (TIME_SLICE) * 1e6; // Converts Time Slice to nseconds 
 
 
@@ -62,9 +59,9 @@ main(void)
         usleep(time_slice);
         int prob = _intercontroller_generate_probability();
 
-        if (prob < prob_2) _intercontroller_send(INTERCONTROLLER_SIG_IQR2);
-        if (prob < prob_1) _intercontroller_send(INTERCONTROLLER_SIG_IQR1);
-        _intercontroller_send(INTERCONTROLLER_SIG_IQR0);
+        if (prob < prob_2) _intercontroller_send(INTERCONTROLLER_SIG_IRQ2);
+        if (prob < prob_1) _intercontroller_send(INTERCONTROLLER_SIG_IRQ1);
+        _intercontroller_send(INTERCONTROLLER_SIG_IRQ0);
     }
 
     return 0;
