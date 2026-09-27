@@ -3,7 +3,7 @@
 #include "debug.h"
 
 
-static inline void
+inline void
 debug_print_table_separator(void)
 {
     int total_width = 0;
@@ -16,7 +16,7 @@ debug_print_table_separator(void)
 }
 
 
-static inline void
+inline void
 debug_print_table_header(void)
 {
     print_table_separator();

@@ -25,12 +25,12 @@ $(TEST_BIN_DIR)/test_pipes: tests/unit/test_pipes.c src/ipc/pipes.c
 test_pipes: $(TEST_BIN_DIR)/test_pipes
 	./$(TEST_BIN_DIR)/test_pipes
 
-$(TEST_BIN_DIR)/queue_tb: tests/unit/queue_tb.c src/utils/queue.c
+$(TEST_BIN_DIR)/test_queues: tests/unit/test_queues.c src/utils/queue.c
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $^ -o $@
 
-queue_tb: $(TEST_BIN_DIR)/queue_tb
-	./$(TEST_BIN_DIR)/queue_tb
+test_queues: $(TEST_BIN_DIR)/test_queues
+	./$(TEST_BIN_DIR)/test_queues
 
 # =========================
 # Main programs
@@ -70,4 +70,4 @@ $(BUILD_DIR)/%.o: src/%.c
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean test_intercontroller test_pipes queue_tb
+.PHONY: all clean test_intercontroller test_pipes test_queues

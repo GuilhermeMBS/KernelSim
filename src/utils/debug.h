@@ -3,19 +3,19 @@
 
 #define DEBUG 1
 
-#define PRINT_COLS_TABLE                        \
-    X(CHILD,          "CHILD",          6)      \
-    X(PID,            "PID",            8)      \
-    X(PC,             "PC",             6)      \
-    X(N,              "N",              6)      \
-    X(STATE,          "STATE",         10)      \
-    X(READ_SYSCALLS,  "READ SYSCALLS", 16)      \
+#define PRINT_COLS_TABLE                         \
+    X(CHILD,          "CHILD",           6)      \
+    X(PID,            "PID",             8)      \
+    X(PC,             "PC",              6)      \
+    X(N,              "N",               6)      \
+    X(STATE,          "STATE",          10)      \
+    X(READ_SYSCALLS,  "READ SYSCALLS",  16)      \
     X(WRITE_SYSCALLS, "WRITE SYSCALLS", 16)
 
-#define TOTAL_TABLE_WIDTH (0                    \
-    #define X(name, size) + (size)              \
-    PRINT_COLS_TABLE                            \
-    #undef X                                    \
+#define TOTAL_TABLE_WIDTH (0                     \
+    #define X(name, size) + (size)               \
+    PRINT_COLS_TABLE                             \
+    #undef X                                     \
 )
 
 typedef enum {

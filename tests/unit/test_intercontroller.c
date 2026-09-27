@@ -157,9 +157,9 @@ static void test_starts_stopped(void)
  * Asserts that the IRQ0 signal ('0') is emitted exactly after the
  * configured TIME_SLICE interval.
  */
-static void test_irq0(void)
+static void test_iqr_zero(void)
 {
-    printf("\ttest_irq0... ");
+    printf("\ttest_iqr_zero... ");
 
     int fd;
     pid_t pid = start_intercontroller(&fd);
@@ -244,7 +244,7 @@ int main(void)
     printf("Running intercontroller tests...\n\n");
 
     test_starts_stopped();
-    test_irq0();
+    test_iqr_zero();
     test_valid_signals();
 
     printf("\nAll intercontroller tests passed.\n");
