@@ -15,9 +15,9 @@
 #include "intercontroller.h"
 
 
-#define TIME_SLICE 500  // Frequency for IQR0 (in ms)
-#define PROB_1 10       // Probability of Signal IQR1 to Happen (in %)
-#define PROB_2 5        // Probability of Signal IQR2 to Happen (in %)
+#define TIME_SLICE 500  // Frequency for IRQ0 (in ms)
+#define PROB_1 10       // Probability of Signal IRQ1 to Happen (in %)
+#define PROB_2 5        // Probability of Signal IRQ2 to Happen (in %)
 #define RAND_SEED 0     // Random Seed Flag (1 = True / 0 = False)
 #define TRUE  1
 #define FALSE 0
@@ -63,12 +63,12 @@ main(void)
     while (TRUE) {
         nanosleep(&ts, NULL);
 
-        _intercontroller_send(INTERCONTROLLER_SIG_IQR0);
+        _intercontroller_send(INTERCONTROLLER_SIG_IRQ0);
         
         int prob = _intercontroller_generate_probability();
 
-        if (prob < prob_2) _intercontroller_send(INTERCONTROLLER_SIG_IQR2);
-        if (prob < prob_1) _intercontroller_send(INTERCONTROLLER_SIG_IQR1);
+        if (prob < prob_2) _intercontroller_send(INTERCONTROLLER_SIG_IRQ2);
+        if (prob < prob_1) _intercontroller_send(INTERCONTROLLER_SIG_IRQ1);
     }
 
     return 0;

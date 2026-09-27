@@ -68,7 +68,23 @@ static void handle_sig(int signal)
 void
 _kernelsim_state()
 {
-    // Shows all states
+    print_table_header();
+
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        pcb_child_t child = children[i];
+
+        printf("%-*d %-*d %-*d %-*d %-*s %-*d %-*d\n",
+            DEBUG_COL_WIDTH_CHILD,          i,
+            DEBUG_COL_WIDTH_PID,            child.pid,
+            DEBUG_COL_WIDTH_PC,             child.ctx.pc,
+            DEBUG_COL_WIDTH_N,              child.ctx.n,
+            DEBUG_COL_WIDTH_STATE,          child.state,
+            DEBUG_COL_WIDTH_READ_SYSCALLS,  child.data.nread,
+            DEBUG_COL_WIDTH_WRITE_SYSCALLS, child.data.nwrite
+        );
+    }
+
+    print_table_separator();
 }
 
 
@@ -138,6 +154,7 @@ _kernelsim_handle_iqr(IntercontrollerSig signal)
             // Stop child
             kill(children[curr_child].pid, SIGSTOP);
             _kernelsim_save_ctx();
+            children[curr_child].state = PCB_STATE_READY;
             queue_put(&children_ready, curr_child);
             // Get next process
             int curr_child = queue_get(&children_ready);
@@ -150,10 +167,17 @@ _kernelsim_handle_iqr(IntercontrollerSig signal)
             int child_to_move = queue_get(&children_recv);
             if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
                 queue_put(&children_ready, child_to_move);
+                /*
+                Old Write in Pipe Method (Before SHM)
+                children[child_to_move].state = PCB_STATE_READY;
                 write(children[child_to_move].child.to[WRITE],
                     children[child_to_move].brother,
                     sizeof(int)
                 );
+                */
+               (*shared_context[child_to_move]).n = (*shared_context
+                                                    [BROTHER_IDX(child_to_move)]
+                                                    ).pc;
             }
             break;
         
@@ -348,7 +372,7 @@ _kernelsim_exec_controller()
 
         execl("./bin/intercontroller", "controller", id_str, NULL);
 
-        perror("execl failed");
+        perror("[Intercontroller] Exec Failed!");
         exit(DEBUG_RET_EXEC_ERROR);
     }
 
