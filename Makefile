@@ -11,33 +11,33 @@ TEST_BIN_DIR := $(BIN_DIR)/tests
 # Tests
 # =========================
 
-$(TEST_BIN_DIR)/test_intercontroller: tests/unit/test_intercontroller.c $(BIN_DIR)/intercontroller
+$(TEST_BIN_DIR)/test_intercontroller: tests/suites/test_intercontroller.c $(BIN_DIR)/intercontroller
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
 test_intercontroller: $(TEST_BIN_DIR)/test_intercontroller
 	./$(TEST_BIN_DIR)/test_intercontroller
 
-$(TEST_BIN_DIR)/test_pipes: tests/unit/test_pipes.c src/ipc/pipes.c
+$(TEST_BIN_DIR)/test_pipes: tests/suites/test_pipes.c src/ipc/pipes.c
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $^ -o $@
 
 test_pipes: $(TEST_BIN_DIR)/test_pipes
 	./$(TEST_BIN_DIR)/test_pipes
 
-$(TEST_BIN_DIR)/test_queues: tests/unit/test_queues.c src/utils/queue.c
+$(TEST_BIN_DIR)/test_queues: tests/suites/test_queues.c src/utils/queue.c
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $^ -o $@
 
 test_queues: $(TEST_BIN_DIR)/test_queues
 	./$(TEST_BIN_DIR)/test_queues
 
-$(TEST_BIN_DIR)/child_tb: tests/unit/child_tb.c $(BIN_DIR)/child
+$(TEST_BIN_DIR)/test_child: tests/suites/test_child.c $(BIN_DIR)/child
 	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
-child_tb: $(TEST_BIN_DIR)/child_tb
-	./$(TEST_BIN_DIR)/child_tb
+test_child: $(TEST_BIN_DIR)/test_child
+	./$(TEST_BIN_DIR)/test_child
 
 # =========================
 # Main programs
@@ -77,4 +77,4 @@ $(BUILD_DIR)/%.o: src/%.c
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean test_intercontroller test_pipes test_queues child_tb
+.PHONY: all clean test_intercontroller test_pipes test_queues test_child

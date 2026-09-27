@@ -1,93 +1,104 @@
 /**
- * This process aims to run in parallel with the KernelSim.
- * It will do a random number of iterations ranging from
- * 5.000 to 10.000, using a time-sharing system made by the
- * Inter Controller module.
-*/
-
-/**
- * Loop que dura 1 seg
- * Probabilidade aleatória de pedir send ou recv
- * Levantar recv sem ter dado na pipe para receber vai retornar 0
- * e entra num NO_WAIT
+ * @file child.c
+ * @brief Application process implementation.
+ *
+ * This process simulates a user application running under a time-sharing 
+ * system managed by KernelSim. It performs a random number of iterations 
+ * and probabilistically requests IPC read/write operations, relying on 
+ * blocking pipe reads to simulate the suspension of system calls.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
 #include <unistd.h>
 #include <time.h>
 
 #include "process/child.h"
 #include "utils/debug.h"
 
-#define MAX_ITER        10000
-#define MIN_ITER        5000
-#define SLEEP_TIME      500     // Time in ms
-#define SYSCALL_PROB    85      // Probability of a syscall in percentage
+#define MAX_ITER        10000   // Maximum number of loop iterations
+#define MIN_ITER        5000    // Minimum number of loop iterations
+#define SLEEP_TIME      500     // Half-cycle sleep time in ms
+#define SYSCALL_PROB    15      // Low probability of a syscall in percentage
 
-
-static int shm_id;
-static child_data_t *own_data;
 static int read_pipe;
 static int write_pipe;
+static child_data_t data = { .pc = 0, .n = 0 };
 
-
-static inline int
-_generate_iterations(pid_t pid)
+/**
+ * @brief Generates a random number of iterations for the process lifespan.
+ * 
+ * @param pid Process ID used as the seed.
+ * @return A random integer between MIN_ITER and MAX_ITER.
+ */
+static inline int _generate_iterations(pid_t pid)
 {
-    srand(pid); // Generates a random seed
-    int iterations = (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
-    return iterations;
+    srand(pid); 
+    return (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
 }
 
-
-static DebugRet
-_child_syscall(ChildOp OP)
+/**
+ * @brief Triggers a system call to the KernelSim.
+ * 
+ * Sends the requested operation to the kernel via the write pipe.
+ * 
+ * @param op The requested ChildOp (CHILD_OP_WRITE or CHILD_OP_READ).
+ * @return DEBUG_RET_SUCCESS on successful write, exits on failure.
+ */
+static DebugRet _child_syscall(ChildOp op)
 {
-    printf("[SYSCALL | PC %d] Write OP %d Successful\n", own_data->pc, OP);
+    printf("[SYSCALL | PC %d] Requesting OP %d\n", data.pc, op);
 
-    ChildOp tmp = OP;
+    ChildOp tmp = op;
     ssize_t bytes_written = write(write_pipe, &tmp, sizeof(tmp));
-    if (bytes_written == -1)
-    {
-        perror("[SYSCALL] Write/Read Failed\n");
+    
+    if (bytes_written == -1) {
+        perror("[SYSCALL] Write Failed");
         exit(DEBUG_RET_ERR_SYSCALL);
     }
 
     return DEBUG_RET_SUCCESS;
 }
 
-
-static int
-_child_loop(int max_iterations)
+/**
+ * @brief Main execution loop of the application process.
+ * 
+ * @param max_iterations Total number of iterations before the process exits.
+ * @return 0 upon successful completion.
+ */
+static int _child_loop(int max_iterations)
 {
     struct timespec ts;
     ts.tv_sec = 0;
-    ts.tv_nsec = SLEEP_TIME * 1e6;
+    ts.tv_nsec = SLEEP_TIME * 1000000L; // 500 ms in nanoseconds
 
-    while (own_data->pc < max_iterations) {
-        own_data->pc++;
+    while (data.pc < max_iterations) {
+        data.pc++;
         nanosleep(&ts, NULL);
 
         int prob = rand() % 100;
         if (prob < SYSCALL_PROB) {
-            // Read Syscall
             if (prob % 2) {
+                // Read Syscall
                 _child_syscall(CHILD_OP_READ);
+                
                 int brother_n;
                 ssize_t bytes_read = read(read_pipe, &brother_n, sizeof(brother_n));
+                
                 if (bytes_read == -1) {
-                    printf("[PIPE | PC %d] Read Failed\n", own_data->pc);
+                    printf("[PIPE | PC %d] Read Failed\n", data.pc);
                     return -1;
                 }
                 
-                if (brother_n == 0) printf("[PIPE | PC %d] Read Pipe Empty\n", own_data->pc);
-                else own_data->n = brother_n;
+                if (brother_n == 0) {
+                    printf("[PIPE | PC %d] Read Pipe Empty (NO_WAIT)\n", data.pc);
+                } else {
+                    data.n = brother_n;
+                    printf("[PIPE | PC %d] Received N = %d\n", data.pc, data.n);
+                }
             }
-            // Write Syscall1
+            
             else _child_syscall(CHILD_OP_WRITE);
         }
         
@@ -96,34 +107,30 @@ _child_loop(int max_iterations)
     return 0;
 }
 
-
-int
-main(int argc, char *argv[])
+/**
+ * @brief Entry point for the child application process.
+ * 
+ * @param argc Argument count.
+ * @param argv Argument vector (expects read_pipe, write_pipe, and shm_id).
+ * @return 0 upon successful termination.
+ */
+int main(int argc, char *argv[])
 {
-    if (argc != 4)
-    {
-        perror("Wrong amount of arguments.\n\t.\\child pipe_fd[0] pipe_fd[1] shm_id");
+    if (argc < 3) {
+        fprintf(stderr, "Usage: ./child <read_pipe> <write_pipe>\n");
         exit(DEBUG_RET_EXEC_ERROR);
     }
     
     pid_t pid = getpid();
     printf("[Process %d Running]\n", pid);
 
-    read_pipe   = atoi(argv[1]);
-    write_pipe  = atoi(argv[2]);
-    shm_id      = atoi(argv[3]);
-
-    own_data = (child_data_t *)shmat(shm_id, NULL, 0);
-    if (own_data == (void*)-1)
-    {
-        perror("[SHM] Shmat error");
-        exit(DEBUG_RET_ERR_SHM);
-    }
+    read_pipe  = atoi(argv[1]);
+    write_pipe = atoi(argv[2]);
 
     int max_iterations = _generate_iterations(pid);
     printf("[Process %d] Max Iterations: %d\n", pid, max_iterations);
 
-    raise(SIGSTOP);
+    raise(SIGSTOP); // Suspends until KernelSim sends SIGCONT
     _child_loop(max_iterations);
 
     return 0;

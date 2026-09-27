@@ -424,7 +424,7 @@ kernelsim_start()
 {
     // Function to show initial processes states AND FLAGS
 
-    printf("[Starting Child: %d]", queue_get(curr_child));
+    printf("[Starting Child: %d]", queue_get(&children_ready));
     _kernelsim_resume();
     running = true;
     
@@ -448,7 +448,7 @@ kernelsim_start()
                 running = true;
             }
             #else
-            kernelsim_state();
+            _kernelsim_state();
             #endif
 
             context_triggered = false;
