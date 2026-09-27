@@ -15,7 +15,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#include "include/intercontroller.h"
+#include "intercontroller.h"
 
 
 #define TIME_SLICE 500  // Frequency for IQR0 (in ms)

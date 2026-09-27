@@ -1,7 +1,7 @@
-#ifndef PIPE_H
-#define PIPE_H
+#ifndef PIPES_H
+#define PIPES_H
 
-#include "retcode.h"
+#include "utils/debug.h"
 
 
 typedef struct
@@ -11,8 +11,9 @@ typedef struct
 } pipe_t;
 
 
-retcode_t
+debug_t
 pipe_make(pipe_t* p);
+
 // Talvez fazer função auxiliar de close?
 
 #endif

@@ -1,8 +1,8 @@
-#include "pipe.h"
-#include "retcode.h"
+#include "pipes.h"
+#include "utils/debug.h"
 
 
-retcode_t pipe_make(pipe_t* p) {
+debug_t pipe_make(pipe_t* p) {
     if(pipe(p->to) < 0) {
         printf("[PID %d] Pipe To Error!\n", getpid());
         exit(PIPE_ERROR);

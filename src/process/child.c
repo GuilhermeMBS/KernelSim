@@ -19,6 +19,9 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+#include "child.h"
+
+
 #define MAX_ITER        10000
 #define MIN_ITER        5000
 #define SLEEP_TIME      5e5     // Sleep time in micro seconds

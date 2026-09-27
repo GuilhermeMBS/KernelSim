@@ -1,5 +1,5 @@
-#ifndef RETCODE_H
-#define RETCODE_H
+#ifndef DEBUG_H
+#define DEBUG_H
 
 // Alterar para variáveis com mesmo nome da struct
 typedef enum 
@@ -9,7 +9,7 @@ typedef enum
     FORK_ERROR,
     WAIT_ERROR,
     PIPE_ERROR
-} retcode_t;
+} debug_t;
 
 
 // Criar funções de log em cada erro

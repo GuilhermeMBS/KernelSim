@@ -15,29 +15,29 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-#include "include/kernelsim.h"
-#include "include/intercontroller.h"
-#include "include/child.h"
-#include "aux/kernelsim_params.h"
-#include "aux/pcb.h"
-#include "aux/queue.h"
-#include "aux/retcode.h"
+#include "kernelsim.h"
+#include "pcb.h"
+#include "ipc/intercontroller.h"
+#include "process/child.h"
+#include "utils/queue.h"
+#include "utils/debug.h"
 
 #define READ  0
 #define WRITE 1
 #define BROTHER_PIPES(id) brother_p##id
+#define BROTHER_IDX(id) ((id + 1) - 2*(id % 2))
 
 static pcb_child_t children[NUM_CHILDREN];
 static pcb_controller_t controller;
 static int curr_child;
 
-QUEUE_INIT(children_ready, NUM_CHILDREN);
-QUEUE_INIT(children_wsend, NUM_CHILDREN);
-QUEUE_INIT(children_wrecv, NUM_CHILDREN);
-QUEUE_INIT(controller_sig, 3);
+QUEUE_INIT(controller_sig, int, 3);
+QUEUE_INIT(children_ready, int, NUM_CHILDREN);
+QUEUE_INIT(children_wsend, pcb_data_t, NUM_CHILDREN);
+QUEUE_INIT(children_wrecv, pcb_data_t, NUM_CHILDREN);
 
 // Allocate brother pipes
-#define X(id) QUEUE_INIT(BROTHER_PIPES(id), BROTHER_PIPE_SIZE);
+#define X(id) QUEUE_INIT(BROTHER_PIPES(id), int, BROTHER_PIPE_SIZE);
 CHILDREN_LIST
 #undef X
 
@@ -49,7 +49,7 @@ static queue_t *brother_pipes[] = {
 };
 
 
-static retcode_t
+static inline debug_t
 _kernelsim_build_child_pipes()
 {
     printf("Building %d Children Pipes...\n", NUM_CHILDREN);
@@ -60,7 +60,7 @@ _kernelsim_build_child_pipes()
 }
 
 
-static retcode_t
+static inline debug_t
 _kernelsim_build_controller_pipes()
 {
     puts("Building Intercontroller Pipes...");
@@ -72,7 +72,7 @@ _kernelsim_build_controller_pipes()
 
 
 static void
-_kernelsim_handle_iqr(int signal)
+_kernelsim_handle_iqr(IntercontrollerSig signal)
 {
     switch (signal) {
         case INTERCONTROLLER_SIG_IQR0:
@@ -87,7 +87,11 @@ _kernelsim_handle_iqr(int signal)
 
         case INTERCONTROLLER_SIG_IQR1:
             int child_to_move = queue_get(&children_wsend);
-            if (child_to_move != -1) queue_put(&children_ready, child_to_move);
+            if (child_to_move != -1) {
+                queue_put(&children_ready, child_to_move);
+                
+                queue_put(children[child_to_move].brother, );
+            }
 
             break;
         
@@ -107,9 +111,9 @@ _kernelsim_handle_iqr(int signal)
 
 
 static void
-_kernelsim_handle_syscall(int signal)
+_kernelsim_handle_syscall(child_data_t data)
 {
-    switch (signal) {
+    switch (data.op) {
         case CHILD_OP_WRITE:
             kill(children[curr_child].pid, SIGSTOP);
             queue_put(&children_wsend, curr_child);
@@ -170,23 +174,28 @@ _kernelsim_run()
         exit(3);
     }
 
-    for (int i = 0; i < POLL_SIZE; i++) {
+    // Intercontroller Signal
+    if (fds[POLL_IC_IDX].revents & POLLIN) {
+        IntercontrollerSig signal;
+        int bytes_read = read(fds[POLL_IC_IDX].fd, &signal, sizeof(IntercontrollerSig));
+        
+        if (bytes_read > 0) {
+                printf("[INTERCONTROLLER] IQR%d\n", signal);
+                _kernelsim_handle_iqr(signal);
+        }
+
+        else if (bytes_read == 0) puts("[INTERCONTROLLER] Closed Pipe!");
+    }
+
+    // Children Signal
+    for (int i = 0; i < NUM_CHILDREN; i++) {
         if (fds[i].revents & POLLIN) {
-            int signal;
-            int bytes_read = read(fds[i].fd, &signal, 4);
+            child_data_t signal;
+            int bytes_read = read(fds[i].fd, &signal, sizeof(child_data_t));
             
             if (bytes_read > 0) {
-                // Intercontroller signal
-                if (i == POLL_IC_IDX) {
-                    printf("[INTERCONTROLLER] IQR%d\n", signal);
-                    _kernelsim_handle_iqr(signal);
-                }
-
-                // Child syscall
-                else {
-                    printf("[Child %d] Syscall OP%d\n", i, signal);
-                    _kernelsim_handle_syscall(signal);
-                }
+                printf("[Child %d] Syscall OP%d\n", i, signal);
+                _kernelsim_handle_syscall(signal);
             }
 
             else if (bytes_read == 0) printf("[SIGNAL | P%d] Closed Pipe.\n", i);
@@ -198,7 +207,7 @@ _kernelsim_run()
 }
 
 
-static retcode_t
+static debug_t
 _kernelsim_exec_child()
 {
     for (int i = 0; i < NUM_CHILDREN; i++) {
@@ -242,7 +251,7 @@ _kernelsim_exec_child()
 }
 
 
-static retcode_t
+static debug_t
 _kernelsim_exec_controller()
 {
     pid_t pid = fork();
@@ -299,7 +308,7 @@ kernelsim_init()
 
 
 void 
-kernelsim_start() 
+kernelsim_start()
 {
     // Function to show initial processes states AND FLAGS
 

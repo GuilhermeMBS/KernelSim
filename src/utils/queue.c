@@ -12,7 +12,7 @@ queue_put(queue_t *q, int e)
 {
     if (IS_FULL(q)) {
         printf(
-            "[Queue Put of %d Error]      \
+            "[Queue Put of %d Error]            \
             Full Queue! Insertion Canceled.", e);
         return;
     }

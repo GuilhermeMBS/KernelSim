@@ -5,12 +5,12 @@ typedef enum
 {
     CHILD_OP_WRITE = 1,
     CHILD_OP_READ
-} child_op;
+} ChildOp;
 
 typedef struct
 {
-    int PC;
-    child_op OP;
+    int pc;
+    ChildOp op;
 } child_data_t;
 
 #endif
