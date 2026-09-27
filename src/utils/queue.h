@@ -10,8 +10,8 @@ typedef struct
 } queue_t;
 
 
-#define _QUEUE_INIT_IMPL(name, type, q_size)    \
-    static type _##name##_buffer[q_size];       \
+#define _QUEUE_INIT_IMPL(name, q_size)          \
+    static _##name##_buffer[q_size];            \
     static queue_t name = {                     \
         .buffer = _##name##_buffer,             \
         .start = 0,                             \
@@ -19,7 +19,7 @@ typedef struct
         .size = q_size                          \
     }
 
-#define QUEUE_INIT(name, type, q_size) _QUEUE_INIT_IMPL(name, type, q_size)
+#define QUEUE_INIT(name, q_size) _QUEUE_INIT_IMPL(name, q_size)
 
 
 void

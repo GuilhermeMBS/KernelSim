@@ -11,7 +11,7 @@ typedef struct
 } pipe_t;
 
 
-debug_t
+DebugRet
 pipe_make(pipe_t* p);
 
 // Talvez fazer função auxiliar de close?

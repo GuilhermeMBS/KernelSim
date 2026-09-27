@@ -8,7 +8,7 @@
 #include "utils/queue.h"
 
 #define NUM_CHILDREN 6
-#define BROTHER_PIPE_SIZE 1024
+#define BROTHER_PIPE_SIZE 16
 
 // This list should have the size of NUM_CHILDREN
 #define CHILDREN_LIST   \
@@ -23,7 +23,9 @@
 typedef enum
 {
     PCB_STATE_READY = 0,
-    PCB_STATE_WAIT,
+    PCB_STATE_WAIT_RECV,
+    PCB_STATE_WAIT_SEND,
+    PCB_RUNNING,
     PCB_STATE_DONE
 } PcbState;
 
@@ -33,7 +35,7 @@ typedef struct
     pipe_t child;
     pid_t pid;
     int state;
-    int time;           // Remaining time
+    int data;           // Data stored in syscall
 } pcb_child_t;
 
 typedef struct
@@ -41,11 +43,5 @@ typedef struct
     pipe_t child;
     pid_t pid;
 } pcb_controller_t;
-
-typedef struct
-{
-    pid_t pid;
-    int data;
-} pcb_data_t;
 
 #endif

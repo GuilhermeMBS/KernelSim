@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "queue.h"
+#include "debug.h"
 
 
 #define IS_FULL(q) ((q->end + 1) % q->size == q->start)
@@ -27,7 +28,7 @@ queue_get(queue_t *q)
 {
     if (IS_EMPTY(q)) {
         printf("[Queue Get] Empty Queue!");
-        return -1;
+        return DEBUG_RET_EMPTY_QUEUE;
     }
     
     int idx = q->start;
