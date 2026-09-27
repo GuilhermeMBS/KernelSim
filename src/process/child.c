@@ -30,22 +30,40 @@
 
 static int PC = 0; // Process iteration counter
 static int N = 0;  // Brother iteration counter
+static int read_pipe;
+static int write_pipe;
 
 
 inline int
-generate_iterations(pid_t pid)
+_generate_iterations(pid_t pid)
 {
     srand(pid); // Generates a random seed
 
     int iterations = (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
-    printf("Max Iterations of Process %d: %d\n", pid, iterations);
+    printf("[CHILD %d] Max Iterations: %d\n", pid, iterations);
 
     return iterations;
 };
 
 
 int
-child_loop(int max_iterations)
+_child_syscall(ChildOp OP)
+{
+    child_data_t data = {.op = OP, .pc = PC};
+    ssize_t bytes_written = write(write_pipe, &data, sizeof(data));
+
+    if (bytes_written == -1) {
+        printf("[SYSCALL | PC %d] Write Failed", PC);
+        return -1;
+    }
+    else printf("[SYSCALL | PC %d] Write OP %d Successful", PC, OP);
+
+    return 1;
+};
+
+
+int
+_child_loop(int max_iterations)
 {
     while (PC < max_iterations) {
         PC++;
@@ -53,15 +71,22 @@ child_loop(int max_iterations)
 
         int prob = rand() % 100;
         if (prob < SYSCALL_PROB) {
-                if (prob % 2) {
-                    // recv no pipe para pegar o N do irmão
+            // Read Syscall
+            if (prob % 2) {
+                _child_syscall(CHILD_OP_READ);
+                int brother_n;
+                ssize_t bytes_read = read(read_pipe, &brother_n, sizeof(brother_n));
+                if (bytes_read == -1) {
+                    printf("[PIPE | PC %d] Read Failed", PC);
+                    return -1;
                 }
-                else {
-                    // send no pipe para enviar seu PC
-                }          
                 
-                // generate syscall (Op,Data)
+                if (brother_n == 0) printf("[PIPE | PC %d] Read Pipe Empty", PC);
+                else N = brother_n;
             }
+            // Write Syscall
+            else _child_syscall(CHILD_OP_WRITE);
+        }
         
         usleep(SLEEP_TIME);
     }
@@ -74,14 +99,14 @@ main(int argc, char *argv[])
     pid_t pid = atoi(argv[1]);
     printf("[Process %d Running]\n", pid);
 
-    int read_pipe = atoi(argv[2]);
-    int write_pipe = atoi(argv[3]);
+    read_pipe = atoi(argv[2]);
+    write_pipe = atoi(argv[3]);
 
-    int max_iterations = generate_iterations(pid);
+    int max_iterations = _generate_iterations(pid);
     printf("[Process %d] Max Iterations: %d\n", pid, max_iterations);
 
     raise(SIGSTOP);
-    child_loop(max_iterations);
+    _child_loop(max_iterations);
 
     return 0;
 }
