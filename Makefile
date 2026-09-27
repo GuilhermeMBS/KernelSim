@@ -32,6 +32,13 @@ $(TEST_BIN_DIR)/test_queues: tests/unit/test_queues.c src/utils/queue.c
 test_queues: $(TEST_BIN_DIR)/test_queues
 	./$(TEST_BIN_DIR)/test_queues
 
+$(TEST_BIN_DIR)/child_tb: tests/unit/child_tb.c $(BIN_DIR)/child
+	@mkdir -p $(TEST_BIN_DIR)
+	$(CC) $(CFLAGS) $< -o $@
+
+child_tb: $(TEST_BIN_DIR)/child_tb
+	./$(TEST_BIN_DIR)/child_tb
+
 # =========================
 # Main programs
 # =========================
@@ -70,4 +77,4 @@ $(BUILD_DIR)/%.o: src/%.c
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean test_intercontroller test_pipes test_queues
+.PHONY: all clean test_intercontroller test_pipes test_queues child_tb
