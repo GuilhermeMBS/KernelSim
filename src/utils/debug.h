@@ -38,10 +38,10 @@ typedef enum
 } DebugRet;
 
 
-static inline void
+inline void
 debug_print_table_separator();
 
-static inline void
+inline void
 debug_print_table_header();
 
 #endif
