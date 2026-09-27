@@ -4,6 +4,7 @@
 #include <signal.h>
 
 #include "ipc/pipes.h"
+#include "process/child.h"
 #include "utils/debug.h"
 #include "utils/queue.h"
 
@@ -31,11 +32,18 @@ typedef enum
 
 typedef struct
 {
-    queue_t* brother;
-    pipe_t child;
-    pid_t pid;
-    int state;
-    int data;           // Data stored in syscall
+    int nread;          // Number of Read Syscalls
+    int nwrite;         // Number of Write Syscalls
+} pcb_data_t;
+
+typedef struct
+{
+    pipe_t child;       // Child Pipes (from and to)
+    queue_t* brother;   // Brother Queue (fake pipe)
+    pcb_data_t data;    // Data stored in syscall
+    child_data_t ctx;   // Process Context
+    pid_t pid;          // Process PID
+    PcbState state;     // Process Current State
 } pcb_child_t;
 
 typedef struct

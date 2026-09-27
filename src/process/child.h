@@ -10,7 +10,7 @@ typedef enum
 typedef struct
 {
     int pc;
-    ChildOp op;
+    int n;
 } child_data_t;
 
 #endif

@@ -32,7 +32,7 @@ static int read_pipe;
 static int write_pipe;
 
 
-inline int
+static inline int
 _generate_iterations(pid_t pid)
 {
     srand(pid); // Generates a random seed
@@ -44,7 +44,7 @@ _generate_iterations(pid_t pid)
 };
 
 
-int
+static int
 _child_syscall(ChildOp OP)
 {
     child_data_t data = {.op = OP, .pc = PC};
@@ -60,7 +60,7 @@ _child_syscall(ChildOp OP)
 };
 
 
-int
+static int
 _child_loop(int max_iterations)
 {
     while (PC < max_iterations) {

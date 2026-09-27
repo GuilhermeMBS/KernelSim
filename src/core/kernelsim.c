@@ -8,11 +8,16 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
 #include <poll.h>
-#include <stdbool.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "kernelsim.h"
 #include "pcb.h"
@@ -23,21 +28,25 @@
 
 #define READ  0
 #define WRITE 1
-#define BROTHER_PIPES(id) brother_p##id
-#define BROTHER_IDX(id) ((id + 1) - 2*(id % 2))
+#define BROTHER_PIPES(id)   brother_p##id
+#define BROTHER_IDX(id)     ((id + 1) - 2*(id % 2))
 
-static pcb_child_t children[NUM_CHILDREN];
-static pcb_controller_t controller;
-static int curr_child;
-static bool running = false;
-static bool context_triggered = false;
+static pcb_child_t children[NUM_CHILDREN];              // Children PCB Array
+static pcb_controller_t controller;                     // Intercontroller Pipe
+static child_data_t *shared_context[NUM_CHILDREN];      // Context Pointers
+static int shmids[NUM_CHILDREN];                        // Shared Memory ID
 
-QUEUE_INIT(controller_sig, 3);
-QUEUE_INIT(children_ready, NUM_CHILDREN);
-QUEUE_INIT(children_recv, NUM_CHILDREN);
-QUEUE_INIT(children_send, NUM_CHILDREN);
+static int curr_child;                                  // Current Running Child
+static bool running = false;                            // Process Running (for DEBUG)
+static bool context_triggered = false;                  // CTRL-Z Flag
 
-// Allocate brother pipes
+
+QUEUE_INIT(controller_sig, 3);                          // Queue for IRQs Recieved
+QUEUE_INIT(children_ready, NUM_CHILDREN);               // Queue for Ready Processes
+QUEUE_INIT(children_recv, NUM_CHILDREN);                // Queue for Waiting Recv Syscall
+QUEUE_INIT(children_send, NUM_CHILDREN);                // Queue for Waiting Send Syscall
+
+// Allocate brother pipes (Kernel fake pipes)
 #define X(id) QUEUE_INIT(BROTHER_PIPES(id), BROTHER_PIPE_SIZE);
 CHILDREN_LIST
 #undef X
@@ -53,6 +62,13 @@ static queue_t *brother_pipes[] = {
 static void handle_sig(int signal)
 {
     context_triggered = true;
+}
+
+
+void
+_kernelsim_state()
+{
+    // Shows all states
 }
 
 
@@ -78,13 +94,52 @@ _kernelsim_build_controller_pipes()
 }
 
 
+static inline DebugRet
+_kernelsim_alloc_shm()
+{
+    printf("Allocating %d shared memories...\n", NUM_CHILDREN);
+
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        shmids[i] = shmget(IPC_PRIVATE, sizeof(child_data_t), IPC_CREAT | 0666);
+        if (shmids[i] < 0) {
+            perror("[SHM] Shmget Error");
+            exit(EXIT_FAILURE);
+        }
+
+        shared_context[i] = (child_data_t *)shmat(shmids[i], NULL, 0);
+        if (shared_context[i] == (void *)-1) {
+            perror("[SHM] Shmat Error");
+            exit(EXIT_FAILURE);
+        }
+
+        shared_context[i]->n = shared_context[i]->pc = 0;
+    }
+
+    puts("Shared Memories Ready.");
+    return DEBUG_RET_SUCCESS;
+}
+
+
+static inline DebugRet
+_kernelsim_save_ctx()
+{
+    children[curr_child].ctx.pc = (*shared_context[curr_child]).pc;
+    children[curr_child].ctx.n = (*shared_context[curr_child]).n;
+
+    return DEBUG_RET_SUCCESS;
+}
+
+
 static void
 _kernelsim_handle_iqr(IntercontrollerSig signal)
 {
     switch (signal) {
         case INTERCONTROLLER_SIG_IRQ0:
+            // Stop child
             kill(children[curr_child].pid, SIGSTOP);
+            _kernelsim_save_ctx();
             queue_put(&children_ready, curr_child);
+            // Get next process
             int curr_child = queue_get(&children_ready);
             if (curr_child == DEBUG_RET_EMPTY_QUEUE) return;
             kill(children[curr_child].pid, SIGCONT);
@@ -109,7 +164,7 @@ _kernelsim_handle_iqr(IntercontrollerSig signal)
                 queue_put(&children_ready, child_to_move);
                 queue_put(
                     children[BROTHER_IDX(child_to_move)].brother,
-                    children[child_to_move].data
+                    (*shared_context[child_to_move]).pc
                 );
             }
             break;
@@ -124,18 +179,21 @@ _kernelsim_handle_iqr(IntercontrollerSig signal)
 
 
 static void
-_kernelsim_handle_syscall(child_data_t data)
+_kernelsim_handle_syscall(ChildOp op)
 {
-    switch (data.op) {
+    switch (op) {
         case CHILD_OP_WRITE:
             kill(children[curr_child].pid, SIGSTOP);
+            _kernelsim_save_ctx();
             queue_put(&children_send, curr_child);
-            children[curr_child].data = data.pc;
+            children[curr_child].data.nwrite++;
             break;
 
         case CHILD_OP_READ:
             kill(children[curr_child].pid, SIGSTOP);
+            _kernelsim_save_ctx();
             queue_put(&children_recv, curr_child);
+            children[curr_child].data.nread++;
             break;
 
         default:
@@ -198,12 +256,12 @@ _kernelsim_engine()
     }
 
     // Children Signal
-    child_data_t data;
-    int bytes_read = read(fds[curr_child].fd, &data, sizeof(child_data_t));
+    ChildOp op;
+    int bytes_read = read(fds[curr_child].fd, &op, sizeof(ChildOp));
     if (fds[curr_child].revents & POLLIN) {
         if (bytes_read > 0) {
-            printf("[Child %d] Syscall OP%d\n", curr_child, data);
-            _kernelsim_handle_syscall(data);
+            printf("[Child %d] Syscall OP%d\n", curr_child, op);
+            _kernelsim_handle_syscall(op);
         }
         else if (bytes_read == 0) printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
     }
@@ -221,10 +279,13 @@ _kernelsim_exec_child()
 
         if (pid > 0) {
             // Set PCB Struct
-            children[i].brother = brother_pipes[i];
-            children[i].pid     = pid;
-            children[i].data    = 0;
-            children[i].state   = PCB_STATE_READY;
+            children[i].brother         = brother_pipes[i];
+            children[i].pid             = pid;
+            children[i].state           = PCB_STATE_READY;
+            children[i].data.nread      = 0;
+            children[i].data.nwrite     = 0;
+            children[i].ctx.n           = 0;
+            children[i].ctx.pc          = 0;
 
             // Close Child Unused Pipe Ends
             close(children[i].child.to[READ]);
@@ -303,10 +364,14 @@ _kernelsim_exec_controller()
 void
 kernelsim_init() 
 {
+    // Set Handler
     if (signal(SIGTSTP, handle_sig) == SIG_ERR) {
         perror("[Error Registering Signal Handler]");
         exit(1);
     }
+
+    // Allocate Shared Memories
+    _kernelsim_alloc_shm();
 
     // Build Pipes
     _kernelsim_build_child_pipes();
@@ -355,13 +420,6 @@ kernelsim_start()
 
         _kernelsim_engine();
     }
-}
-
-
-void 
-_kernelsim_state() 
-{
-    // Shows all states
 }
 
 
