@@ -25,6 +25,12 @@ $(TEST_BIN_DIR)/pipe_tb: tests/unit/pipe_tb.c src/ipc/pipes.c
 pipe_tb: $(TEST_BIN_DIR)/pipe_tb
 	./$(TEST_BIN_DIR)/pipe_tb
 
+$(TEST_BIN_DIR)/queue_tb: tests/unit/queue_tb.c src/utils/queue.c
+	@mkdir -p $(TEST_BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@
+
+queue_tb: $(TEST_BIN_DIR)/queue_tb
+	./$(TEST_BIN_DIR)/queue_tb
 
 # =========================
 # Main programs
@@ -64,4 +70,4 @@ $(BUILD_DIR)/%.o: src/%.c
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean ipc_tb pipe_tb
+.PHONY: all clean ipc_tb pipe_tb queue_tb

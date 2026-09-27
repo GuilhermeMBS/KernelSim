@@ -242,7 +242,8 @@ test_valid_signals(void)
 }
 
 
-int main(void)
+int 
+main(void)
 {
     printf("Running intercontroller tests...\n\n");
 

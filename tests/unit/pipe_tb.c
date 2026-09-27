@@ -28,7 +28,7 @@ main(void)
 
     test_pipe_make();
 
-    printf("\nAll pipes test passed\n");
+    printf("\nAll pipes tests passed\n");
 
     return 0;
 }
