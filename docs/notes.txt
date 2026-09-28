@@ -11,6 +11,11 @@ Capacidade global de arquivos: controlada em /proc/sys/fs/file-max.
 Memória RAM: cada pipe aloca uma fila circular de páginas de memória no Kernel (no Linux, o buffer padrão é de 64 KB por pipe). O Kernel impõe um limite máximo de páginas alocadas para pipes por usuário não-root (visível em /proc/sys/fs/pipe-user-pages-hard). Criar centenas de milhares de pipes consumiria rapidamente a memória física do sistema.
 ----------------------------------------------------------------------
 
+- atualizar comentários de kernelsim.h e dos mocks
+- como saber se um processo acabou para fazer uma rotina nisto?
+- quando geral acaba?
+- falta rotina de encerramento nos arquivos
+
 FALTA FAZER:
 1. Fazer rotina de encerramento do programa
 2. Colocar prints como logs da flag de debug;

@@ -58,9 +58,12 @@ static queue_t *brother_pipes[] = {
 
 
 static void
-_handle_sig(int signal)
+_handle_sig(int sig)
 {
-    if (signal == SIGTSTP) context_triggered = true;
+    if (sig == SIGTSTP) {
+        context_triggered = true;
+        signal(SIGTSTP, _handle_sig); // Reset signal handler
+    }
     // Other signals should kill all processes as well as the kernelsim
     else {
         for (int i = 0; i < NUM_CHILDREN; i++) kill(children[i].pid, SIGKILL);
@@ -80,7 +83,7 @@ _kernelsim_state(void)
         pcb_child_t child = children[i];
 
         // Must follow the order and use pcb_state_strings
-        printf("%-*d %-*d %-*d %-*d %-*s %-*d %-*d\n",
+        printf("%-*d%-*d%-*d%-*d%-*s%-*d%-*d\n",
             DEBUG_COL_WIDTH_CHILD,          i,
             DEBUG_COL_WIDTH_PID,            child.pid,
             DEBUG_COL_WIDTH_PC,             child.ctx.pc,
@@ -159,9 +162,8 @@ _kernelsim_handle_irq(IntercontrollerSig signal)
     switch (signal) {
         case INTERCONTROLLER_SIG_IRQ0:
         {
-            if (curr_child == DEBUG_RET_EMPTY_QUEUE) break;
-
-            if (children[curr_child].state == PCB_STATE_RUNNING) {
+            if (curr_child != DEBUG_RET_EMPTY_QUEUE
+                && children[curr_child].state == PCB_STATE_RUNNING) {
                 kill(children[curr_child].pid, SIGSTOP);
                 _kernelsim_save_ctx();
                 children[curr_child].state = PCB_STATE_READY;
@@ -169,7 +171,7 @@ _kernelsim_handle_irq(IntercontrollerSig signal)
             }
             
             curr_child = queue_get(&children_ready);
-
+            
             if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
                 children[curr_child].state = PCB_STATE_RUNNING;
                 kill(children[curr_child].pid, SIGCONT);
@@ -240,6 +242,13 @@ _kernelsim_handle_syscall(ChildOp op)
         }
 
         default: puts("[Undefined Child OP Signal]");
+    }
+
+    // Don't lose a cycle
+    curr_child = queue_get(&children_ready);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
+        children[curr_child].state = PCB_STATE_RUNNING;
+        kill(children[curr_child].pid, SIGCONT);
     }
 }
 

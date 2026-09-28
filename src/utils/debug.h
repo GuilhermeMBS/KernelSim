@@ -26,9 +26,9 @@
     X(PID,            "PID",             8)              \
     X(PC,             "PC",              6)              \
     X(N,              "N",               6)              \
-    X(STATE,          "STATE",          10)              \
-    X(READ_SYSCALLS,  "READ SYSCALLS",  16)              \
-    X(WRITE_SYSCALLS, "WRITE SYSCALLS", 16)
+    X(STATE,          "STATE",          12)              \
+    X(READ_SYSCALLS,  "RECV",            8)              \
+    X(WRITE_SYSCALLS, "SEND",            8)
 
 /**
  * @brief Calculates the total width of the table.

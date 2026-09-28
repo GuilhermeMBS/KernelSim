@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     struct timespec ts;
     ts.tv_sec = 0;
-    ts.tv_nsec = 50000000L; // 50ms
+    ts.tv_nsec = 50000000L; // 50ms (Faster than usual)
 
     raise(SIGSTOP);
 

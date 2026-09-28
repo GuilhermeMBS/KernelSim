@@ -14,11 +14,11 @@ main(void)
     while (1) {
         nanosleep(&ts, NULL);
         
-        // Envia interrupção de relógio
+        // Sends clock interruption
         IntercontrollerSig sig = INTERCONTROLLER_SIG_IRQ0;
         write(STDOUT_FILENO, &sig, sizeof(sig));
         
-        // Simula resolução de IPC pelo sistema em background
+        // Simulates IPC resolution by system in background
         if (rand() % 100 < 30) {
             sig = INTERCONTROLLER_SIG_IRQ1;
             write(STDOUT_FILENO, &sig, sizeof(sig));

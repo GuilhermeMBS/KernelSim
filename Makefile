@@ -23,7 +23,8 @@ KERNEL_SOURCES := 			\
     src/main.c 				\
     src/core/kernelsim.c 	\
     src/ipc/pipes.c 		\
-    src/utils/queue.c
+    src/utils/queue.c		\
+	src/utils/debug.c
 
 KERNEL_OBJECTS := $(KERNEL_SOURCES:src/%.c=$(BUILD_DIR)/%.o)
 
@@ -119,6 +120,20 @@ mock_env:
 test_kernel: mock_env
 	@echo "Running KernelSim with Mocks... (Press Ctrl+Z to test context)"
 	./$(BIN_DIR)/kernel
+
+# ==============================================================================
+# Execution (Main Program)
+# ==============================================================================
+.PHONY: run
+
+run: all
+	@echo "======================================================="
+	@echo "Starting Full KernelSim Environment..."
+	@echo "Press CTRL-Z to view process states."
+	@echo "Press CTRL-C to safely terminate all processes."
+	@echo "======================================================="
+	./$(BIN_DIR)/kernel
+
 
 # ==============================================================================
 # Cleanup and Utilities

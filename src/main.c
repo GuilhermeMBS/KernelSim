@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <unistd.h>
 
 #include "core/kernelsim.h"
 #include "utils/debug.h"
 
 
-inline void
-wait_enter(const char *msg)
+static inline void
+_wait_enter(const char *msg)
 {
     if (msg) {
         puts(msg);
@@ -22,10 +23,11 @@ main(void)
 {
     puts("[Building Kernel Simulation]");
     kernelsim_init();
+    sleep(1);
     puts("[Kernel Simulation Ready]");
 
     #if DEBUG
-    wait_enter("[Press ENTER to Start Simulation]");
+    _wait_enter("[Press ENTER to Start Simulation]");
     #endif
 
     puts("[Starting Kernel Simulation]");
