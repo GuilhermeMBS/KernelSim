@@ -17,7 +17,8 @@
 /**
  * @brief Tests basic queue initialization properties.
  */
-static void test_create_queue(void)
+static void
+test_create_queue(void)
 {
     printf("\ttest_create_queue... ");
 
@@ -34,7 +35,8 @@ static void test_create_queue(void)
 /**
  * @brief Tests the insertion of a single element.
  */
-static void test_queue_put_single_element(void)
+static void
+test_queue_put_single_element(void)
 {
     printf("\ttest_queue_put_single_element... ");
 
@@ -53,7 +55,8 @@ static void test_queue_put_single_element(void)
 /**
  * @brief Tests the sequential insertion of multiple elements.
  */
-static void test_queue_put_multiple_elements(void)
+static void
+test_queue_put_multiple_elements(void)
 {
     printf("\ttest_queue_put_multiple_elements... ");
 
@@ -79,7 +82,8 @@ static void test_queue_put_multiple_elements(void)
 /**
  * @brief Tests the retrieval of a single element.
  */
-static void test_queue_get_single_element(void)
+static void
+test_queue_get_single_element(void)
 {
     printf("\ttest_queue_get_single_element... ");
 
@@ -98,7 +102,8 @@ static void test_queue_get_single_element(void)
 /**
  * @brief Tests the sequential retrieval of multiple elements and wrap-around.
  */
-static void test_queue_get_multiple_elements(void)
+static void
+test_queue_get_multiple_elements(void)
 {
     printf("\ttest_queue_get_multiple_elements... ");
 
@@ -126,7 +131,8 @@ static void test_queue_get_multiple_elements(void)
 /**
  * @brief Tests overflow prevention when attempting to insert into a full queue.
  */
-static void test_queue_full(void)
+static void
+test_queue_full(void)
 {
     printf("\ttest_queue_full...\n\t\t");
 
@@ -155,7 +161,8 @@ static void test_queue_full(void)
 /**
  * @brief Tests underflow prevention when attempting to read from an empty queue.
  */
-static void test_queue_empty(void)
+static void
+test_queue_empty(void)
 {
     printf("\ttest_queue_empty...\n\t\t");
 
@@ -173,14 +180,15 @@ static void test_queue_empty(void)
     queue_get(&test);
 
     // Attempt to underflow
-    assert(queue_get(&test) == -1);
+    assert(queue_get(&test) == DEBUG_RET_EMPTY_QUEUE);
     assert(test.qtd == 0);
 
     printf("\t\tPASS\n");
 }
 
 
-int main(void)
+int
+main(void)
 {
     printf("Running queue tests...\n\n");
 

@@ -4,10 +4,6 @@
 #include "utils/debug.h"
 
 
-#define TRUE  1
-#define FALSE 0
-
-
 inline void
 wait_enter(const char *msg)
 {

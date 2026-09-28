@@ -40,6 +40,7 @@ typedef struct
  * @param p Pointer to the pipe_t structure to be initialized.
  * @return DEBUG_RET_SUCCESS on success, DEBUG_RET_PIPE_ERROR on failure.
  */
-DebugRet pipe_make(pipe_t* p);
+DebugRet
+pipe_make(pipe_t* p);
 
 #endif /* PIPES_H */

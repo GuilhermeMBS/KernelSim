@@ -27,7 +27,8 @@
  * 
  * @return The current time in milliseconds.
  */
-static long long current_time_ms(void)
+static long long
+current_time_ms(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -45,7 +46,8 @@ static long long current_time_ms(void)
  * 
  * @return 1 if a byte was read, 0 on timeout, -1 on error.
  */
-static int read_signal(int fd, char *signal, int timeout_ms)
+static int
+read_signal(int fd, char *signal, int timeout_ms)
 {
     fd_set readfds;
     struct timeval timeout;
@@ -85,7 +87,8 @@ static int read_signal(int fd, char *signal, int timeout_ms)
  * @param read_fd Pointer to store the read end of the pipe.
  * @return The PID of the child process.
  */
-static pid_t start_intercontroller(int *read_fd)
+static pid_t
+start_intercontroller(int *read_fd)
 {
     int pipefd[2];
     assert(pipe(pipefd) == 0);
@@ -118,7 +121,8 @@ static pid_t start_intercontroller(int *read_fd)
  * @param pid The PID of the process to terminate.
  * @param fd The file descriptor (pipe) to close.
  */
-static void stop_intercontroller(pid_t pid, int fd)
+static void
+stop_intercontroller(pid_t pid, int fd)
 {
     kill(pid, SIGTERM);
     close(fd);
@@ -131,7 +135,8 @@ static void stop_intercontroller(pid_t pid, int fd)
  * Verifies that the intercontroller.c process successfully calls 
  * raise(SIGSTOP) before entering its main loop.
  */
-static void test_starts_stopped(void)
+static void
+test_starts_stopped(void)
 {
     printf("\ttest_starts_stopped... ");
 
@@ -157,7 +162,8 @@ static void test_starts_stopped(void)
  * Asserts that the IRQ0 signal ('0') is emitted exactly after the
  * configured TIME_SLICE interval.
  */
-static void test_iqr_zero(void)
+static void
+test_iqr_zero(void)
 {
     printf("\ttest_iqr_zero... ");
 
@@ -195,7 +201,8 @@ static void test_iqr_zero(void)
  * distribution, the probabilities (PROB_1, PROB_2) in intercontroller.c 
  * should temporarily be increased.
  */
-static void test_valid_signals(void)
+static void
+test_valid_signals(void)
 {
     printf("\ttest_valid_signals... ");
 
@@ -239,7 +246,8 @@ static void test_valid_signals(void)
 /**
  * @brief Main execution entry point for the test suite.
  */
-int main(void)
+int
+main(void)
 {
     printf("Running intercontroller tests...\n\n");
 

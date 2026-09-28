@@ -32,14 +32,16 @@
  * 
  * @param signal The interrupt signal to be sent.
  */
-static inline void _intercontroller_send(IntercontrollerSig signal)
+static inline void
+_intercontroller_send(IntercontrollerSig signal)
 {
     fflush(stdout);
     write(STDOUT_FILENO, &signal, sizeof(IntercontrollerSig));
     fflush(stdout);
 }
 
-int main(void)
+int
+main(void)
 {
     struct timespec ts;
     

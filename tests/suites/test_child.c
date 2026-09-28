@@ -25,7 +25,8 @@
  * @param pipe_fd Array containing the read and write file descriptors.
  * @return The PID of the newly created child process.
  */
-static pid_t start_child(int pipe_fd[2])
+static pid_t
+start_child(int pipe_fd[2])
 {
     pid_t pid = fork();
     assert(pid >= 0);
@@ -50,7 +51,8 @@ static pid_t start_child(int pipe_fd[2])
  * 
  * @param pid The process ID to terminate.
  */
-static void stop_child(pid_t pid)
+static void
+stop_child(pid_t pid)
 {
     kill(pid, SIGKILL);
     waitpid(pid, NULL, 0);
@@ -59,7 +61,8 @@ static void stop_child(pid_t pid)
 /**
  * @brief Tests the emission of the WRITE system call.
  */
-static void test_child_syscall_write(void)
+static void
+test_child_syscall_write(void)
 {
     printf("\ttest_child_syscall_write... ");
 
@@ -111,7 +114,8 @@ static void test_child_syscall_write(void)
 /**
  * @brief Tests the emission of the READ system call and blocking behavior.
  */
-static void test_child_syscall_read(void)
+static void
+test_child_syscall_read(void)
 {
     printf("\ttest_child_syscall_read... ");
 
@@ -157,7 +161,8 @@ static void test_child_syscall_read(void)
 }
 
 
-int main(void)
+int
+main(void)
 {
     printf("Running child tests...\n\n");
 

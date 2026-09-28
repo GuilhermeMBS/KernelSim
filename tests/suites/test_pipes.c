@@ -21,7 +21,8 @@
  * DEBUG_RET_SUCCESS. Afterwards, it manually closes all allocated 
  * file descriptors to prevent resource leaks during the test.
  */
-static void test_pipe_make(void)
+static void
+test_pipe_make(void)
 {
     printf("\ttest_pipe_make... ");
     
@@ -41,7 +42,8 @@ static void test_pipe_make(void)
 }
 
 
-int main(void)
+int
+main(void)
 {
     printf("Running pipe tests...\n\n");
     test_pipe_make();

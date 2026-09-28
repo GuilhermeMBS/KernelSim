@@ -13,7 +13,8 @@
 /** @brief Checks if the queue is completely empty. */
 #define IS_EMPTY(q) ((q)->qtd == 0)
 
-DebugRet queue_put(queue_t *q, int e)
+DebugRet
+queue_put(queue_t *q, int e)
 {
     if (IS_FULL(q)) {
         printf("[QUEUE ERROR] Full Queue! Insertion of %d canceled.\n", e);
@@ -27,7 +28,8 @@ DebugRet queue_put(queue_t *q, int e)
     return DEBUG_RET_SUCCESS;
 }
 
-int queue_get(queue_t *q)
+DebugRet
+queue_get(queue_t *q)
 {
     if (IS_EMPTY(q)) {
         printf("[QUEUE ERROR] Empty Queue! Cannot retrieve element.\n");

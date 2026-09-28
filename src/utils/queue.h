@@ -67,7 +67,8 @@ typedef struct
  * @param e The integer element to be inserted.
  * @return DEBUG_RET_SUCCESS on success, DEBUG_RET_FULL_QUEUE if full.
  */
-DebugRet queue_put(queue_t *q, int e);
+DebugRet
+queue_put(queue_t *q, int e);
 
 /**
  * @brief Removes and returns the element at the front of the queue.
@@ -75,6 +76,7 @@ DebugRet queue_put(queue_t *q, int e);
  * @param q Pointer to the queue structure.
  * @return The retrieved integer, or -1 if the queue is empty.
  */
-int queue_get(queue_t *q);
+DebugRet
+queue_get(queue_t *q);
 
 #endif /* QUEUE_H */

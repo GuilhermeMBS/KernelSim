@@ -10,7 +10,8 @@
 
 #include "utils/debug.h"
 
-void debug_print_table_separator(void)
+void
+debug_print_table_separator(void)
 {
     // Utilizes the pre-calculated TOTAL_TABLE_WIDTH from the header
     for (int i = 0; i < TOTAL_TABLE_WIDTH; i++) {
@@ -19,7 +20,8 @@ void debug_print_table_separator(void)
     putchar('\n');
 }
 
-void debug_print_table_header(void)
+void
+debug_print_table_header(void)
 {
     debug_print_table_separator();
 

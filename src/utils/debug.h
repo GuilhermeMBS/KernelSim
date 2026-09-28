@@ -60,15 +60,15 @@ typedef enum
  */
 typedef enum 
 {
-    DEBUG_RET_SUCCESS = 0,      // Operation completed successfully
-    DEBUG_RET_EXEC_ERROR,       // Failed to execute a binary (execl)
-    DEBUG_RET_FORK_ERROR,       // Failed to fork a new process
-    DEBUG_RET_WAIT_ERROR,       // Failed to wait for a child process
-    DEBUG_RET_PIPE_ERROR,       // Failed to create or configure a pipe
-    DEBUG_RET_FULL_QUEUE,       // Attempted to insert into a full queue
-    DEBUG_RET_EMPTY_QUEUE,      // Attempted to read from an empty queue
-    DEBUG_RET_ERR_SYSCALL,      // Error during a simulated system call
-    DEBUG_RET_ERR_SHM           // Failed to attach or allocate shared memory
+    DEBUG_RET_EXEC_ERROR = -707,    // Failed to execute a binary (execl)
+    DEBUG_RET_FORK_ERROR,           // Failed to fork a new process
+    DEBUG_RET_WAIT_ERROR,           // Failed to wait for a child process
+    DEBUG_RET_PIPE_ERROR,           // Failed to create or configure a pipe
+    DEBUG_RET_FULL_QUEUE,           // Attempted to insert into a full queue
+    DEBUG_RET_EMPTY_QUEUE,          // Attempted to read from an empty queue
+    DEBUG_RET_ERR_SYSCALL,          // Error during a simulated system call
+    DEBUG_RET_ERR_SHM,              // Failed to attach or allocate shared memory
+    DEBUG_RET_SUCCESS = 0,          // Operation completed successfully
 } DebugRet;
 
 /**
@@ -77,7 +77,8 @@ typedef enum
  * Generates a dashed line matching the TOTAL_TABLE_WIDTH to separate 
  * table headers and rows.
  */
-void debug_print_table_separator(void);
+void
+debug_print_table_separator(void);
 
 /**
  * @brief Prints the formatted table header.
@@ -85,6 +86,7 @@ void debug_print_table_separator(void);
  * Uses the PRINT_COLS_TABLE X-Macro to dynamically print the column titles 
  * with their corresponding widths.
  */
-void debug_print_table_header(void);
+void
+debug_print_table_header(void);
 
 #endif /* DEBUG_H */

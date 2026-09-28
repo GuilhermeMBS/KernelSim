@@ -1,6 +1,8 @@
 #include "core/kernelsim.h"
 
-int main(void) {
+int
+main(void)
+{
     kernelsim_init();
     kernelsim_start();
     return 0;

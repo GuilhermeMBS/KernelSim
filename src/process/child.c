@@ -32,7 +32,8 @@ static child_data_t data = { .pc = 0, .n = 0 };
  * @param pid Process ID used as the seed.
  * @return A random integer between MIN_ITER and MAX_ITER.
  */
-static inline int _generate_iterations(pid_t pid)
+static inline int
+_generate_iterations(pid_t pid)
 {
     srand(pid); 
     return (rand() % (MAX_ITER - MIN_ITER + 1)) + MIN_ITER;
@@ -46,7 +47,8 @@ static inline int _generate_iterations(pid_t pid)
  * @param op The requested ChildOp (CHILD_OP_WRITE or CHILD_OP_READ).
  * @return DEBUG_RET_SUCCESS on successful write, exits on failure.
  */
-static DebugRet _child_syscall(ChildOp op)
+static DebugRet
+_child_syscall(ChildOp op)
 {
     printf("[SYSCALL | PC %d] Requesting OP %d\n", data.pc, op);
 
@@ -67,7 +69,8 @@ static DebugRet _child_syscall(ChildOp op)
  * @param max_iterations Total number of iterations before the process exits.
  * @return 0 upon successful completion.
  */
-static int _child_loop(int max_iterations)
+static int
+_child_loop(int max_iterations)
 {
     struct timespec ts;
     ts.tv_sec = 0;
@@ -80,7 +83,6 @@ static int _child_loop(int max_iterations)
         int prob = rand() % 100;
         if (prob < SYSCALL_PROB) {
             if (prob % 2) {
-                // Read Syscall
                 _child_syscall(CHILD_OP_READ);
                 
                 int brother_n;
@@ -114,7 +116,8 @@ static int _child_loop(int max_iterations)
  * @param argv Argument vector (expects read_pipe, write_pipe, and shm_id).
  * @return 0 upon successful termination.
  */
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
     if (argc < 3) {
         fprintf(stderr, "Usage: ./child <read_pipe> <write_pipe>\n");

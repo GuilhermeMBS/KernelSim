@@ -36,7 +36,7 @@ static pcb_controller_t controller;                     // Intercontroller Pipe
 static child_data_t *shared_context[NUM_CHILDREN];      // Context Pointers
 static int shmids[NUM_CHILDREN];                        // Shared Memory ID
 
-static int curr_child;                                  // Current Running Child
+static int curr_child = DEBUG_RET_EMPTY_QUEUE;          // Current Running Child
 static bool running = false;                            // Process Running (for DEBUG)
 static bool context_triggered = false;                  // CTRL-Z Flag
 
@@ -57,10 +57,16 @@ static queue_t *brother_pipes[] = {
 };
 
 
-static void handle_sig(int signal)
+static void
+_handle_sig(int signal)
 {
-    (void)signal;
-    context_triggered = true;
+    if (signal == SIGTSTP) context_triggered = true;
+    // Other signals should kill all processes as well as the kernelsim
+    else {
+        for (int i = 0; i < NUM_CHILDREN; i++) kill(children[i].pid, SIGKILL);
+        kill(controller.pid, SIGKILL);
+        exit(0);
+    }
 }
 
 
@@ -153,13 +159,17 @@ _kernelsim_handle_irq(IntercontrollerSig signal)
     switch (signal) {
         case INTERCONTROLLER_SIG_IRQ0:
         {
+            if (curr_child == DEBUG_RET_EMPTY_QUEUE) break;
+
             if (children[curr_child].state == PCB_STATE_RUNNING) {
                 kill(children[curr_child].pid, SIGSTOP);
                 _kernelsim_save_ctx();
                 children[curr_child].state = PCB_STATE_READY;
                 queue_put(&children_ready, curr_child);
             }
-                
+            
+            curr_child = queue_get(&children_ready);
+
             if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
                 children[curr_child].state = PCB_STATE_RUNNING;
                 kill(children[curr_child].pid, SIGCONT);
@@ -183,7 +193,6 @@ _kernelsim_handle_irq(IntercontrollerSig signal)
             break;
         }
         
-        // Read
         case INTERCONTROLLER_SIG_IRQ2:
         {
             int child_to_move = queue_get(&children_send);
@@ -251,6 +260,100 @@ _kernelsim_resume(void)
 }
 
 
+static DebugRet
+_kernelsim_exec_child(void)
+{
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        pid_t pid = fork();
+
+        if (pid > 0) {
+            // Set PCB Struct
+            children[i].brother         = brother_pipes[i];
+            children[i].pid             = pid;
+            children[i].state           = PCB_STATE_READY;
+            children[i].data.nread      = 0;
+            children[i].data.nwrite     = 0;
+            children[i].ctx.n           = 0;
+            children[i].ctx.pc          = 0;
+
+            // Close Child Unused Pipe Ends
+            close(children[i].child.to[READ]);
+            close(children[i].child.from[WRITE]);
+
+            // Add to Ready Queue
+            queue_put(&children_ready, i);
+        }
+
+        else if (pid == 0) {
+            setpgid(0, 0); // Isolate from signals CTRL-Z and CTRL-C from terminal
+            
+            // Close Unused Pipe Ends
+            close(children[i].child.to[WRITE]);
+            close(children[i].child.from[READ]);
+
+            // Close Brother Pipe Ends 
+            for (int j = 0; j < i; j++) {
+                close(children[j].child.to[READ]);
+                close(children[j].child.from[WRITE]);
+            }
+
+            char read_fd_str[16], write_fd_str[16];
+            snprintf(read_fd_str, sizeof(read_fd_str), "%d", children[i].child.to[READ]);
+            snprintf(write_fd_str, sizeof(write_fd_str), "%d", children[i].child.from[WRITE]);
+
+            execl("./bin/child", "child", read_fd_str, write_fd_str, NULL);
+            perror("[EXEC ERROR] Child");
+            exit(DEBUG_RET_EXEC_ERROR);
+        }
+
+        else {
+            printf("[PID %d] Child %d Fork Error!\n", pid, i);
+            exit(DEBUG_RET_FORK_ERROR);
+        }
+    }
+
+    return DEBUG_RET_SUCCESS;
+}
+
+
+static DebugRet
+_kernelsim_exec_controller(void)
+{
+    pid_t pid = fork();
+
+    if (pid > 0) {
+        setpgid(0, 0); // Isolate from signals CTRL-Z and CTRL-C from terminal
+        controller.pid = pid;
+
+        // Close Unused Pipe Ends
+        close(controller.child.to[READ]);
+        close(controller.child.from[WRITE]);
+    }
+
+    else if (pid == 0) {
+        // Redirects the Pipes to STDIN and STDOUT
+        dup2(controller.child.to[READ], STDIN_FILENO);
+        dup2(controller.child.from[WRITE], STDOUT_FILENO);
+
+        // Close Unused Pipe Ends
+        close(controller.child.to[WRITE]);
+        close(controller.child.from[READ]);
+
+        execl("./bin/intercontroller", "controller", NULL);
+
+        perror("[Intercontroller] Exec Failed!");
+        exit(DEBUG_RET_EXEC_ERROR);
+    }
+
+    else {
+        printf("[PID %d] Controller Fork Error!\n", getpid());
+        exit(DEBUG_RET_FORK_ERROR);
+    }
+
+    return DEBUG_RET_SUCCESS;
+}
+
+
 static void
 _kernelsim_engine(void)
 {    
@@ -295,8 +398,10 @@ _kernelsim_engine(void)
         int bytes_read = read(fds[curr_child].fd, &op, sizeof(ChildOp));
         
         if (bytes_read > 0) {
-            printf("[Child %d] Syscall OP%d\n", curr_child, op);
-            _kernelsim_handle_syscall(op);
+            if (children[curr_child].state == PCB_STATE_RUNNING) {
+                printf("[Child %d] Syscall OP%d\n", curr_child, op);
+                _kernelsim_handle_syscall(op);
+            }
         }
         else if (bytes_read == 0) printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
     }
@@ -306,103 +411,17 @@ _kernelsim_engine(void)
 }
 
 
-static DebugRet
-_kernelsim_exec_child(void)
-{
-    for (int i = 0; i < NUM_CHILDREN; i++) {
-        pid_t pid = fork();
-
-        if (pid > 0) {
-            // Set PCB Struct
-            children[i].brother         = brother_pipes[i];
-            children[i].pid             = pid;
-            children[i].state           = PCB_STATE_READY;
-            children[i].data.nread      = 0;
-            children[i].data.nwrite     = 0;
-            children[i].ctx.n           = 0;
-            children[i].ctx.pc          = 0;
-
-            // Close Child Unused Pipe Ends
-            close(children[i].child.to[READ]);
-            close(children[i].child.from[WRITE]);
-
-            // Add to Ready Queue
-            queue_put(&children_ready, i);
-        }
-
-        else if (pid == 0) {
-            // Close Unused Pipe Ends
-            close(children[i].child.to[WRITE]);
-            close(children[i].child.from[READ]);
-
-            // Close Brother Pipe Ends 
-            for (int j = 0; j < i; j++) {
-                close(children[j].child.to[READ]);
-                close(children[j].child.from[WRITE]);
-            }
-
-            char read_fd_str[16], write_fd_str[16];
-            snprintf(read_fd_str, sizeof(read_fd_str), "%d", children[i].child.to[READ]);
-            snprintf(write_fd_str, sizeof(write_fd_str), "%d", children[i].child.from[WRITE]);
-
-            execl("./bin/child", "child", read_fd_str, write_fd_str, NULL);
-            perror("[EXEC ERROR] Child");
-            exit(DEBUG_RET_EXEC_ERROR);
-        }
-
-        else {
-            printf("[PID %d] Child %d Fork Error!\n", pid, i);
-            exit(DEBUG_RET_FORK_ERROR);
-        }
-    }
-
-    return DEBUG_RET_SUCCESS;
-}
-
-
-static DebugRet
-_kernelsim_exec_controller(void)
-{
-    pid_t pid = fork();
-
-    if (pid > 0) {
-        controller.pid = pid;
-
-        // Close Unused Pipe Ends
-        close(controller.child.to[READ]);
-        close(controller.child.from[WRITE]);
-    }
-
-    else if (pid == 0) {
-        // Redirects the Pipes to STDIN and STDOUT
-        dup2(controller.child.to[READ], STDIN_FILENO);
-        dup2(controller.child.from[WRITE], STDOUT_FILENO);
-
-        // Close Unused Pipe Ends
-        close(controller.child.to[WRITE]);
-        close(controller.child.from[READ]);
-
-        execl("./bin/intercontroller", "controller", NULL);
-
-        perror("[Intercontroller] Exec Failed!");
-        exit(DEBUG_RET_EXEC_ERROR);
-    }
-
-    else {
-        printf("[PID %d] Controller Fork Error!\n", getpid());
-        exit(DEBUG_RET_FORK_ERROR);
-    }
-
-    return DEBUG_RET_SUCCESS;
-}
-
-
 void
 kernelsim_init(void) 
 {
-    // Set Handler
-    if (signal(SIGTSTP, handle_sig) == SIG_ERR) {
-        perror("[Error Registering Signal Handler]");
+    // Set Handlers
+    if (signal(SIGTSTP, _handle_sig) == SIG_ERR) {
+        perror("[Error Registering CTRL-Z Signal Handler]");
+        exit(1);
+    }
+
+    if (signal(SIGINT, _handle_sig) == SIG_ERR) {
+        perror("[Error Registering CTRL-C Signal Handler]");
         exit(1);
     }
 
@@ -422,11 +441,15 @@ kernelsim_init(void)
 void 
 kernelsim_start(void)
 {
+    running = true;
     // Function to show initial processes states AND FLAGS
 
     curr_child = queue_get(&children_ready);
-    if (curr_child != DEBUG_RET_EMPTY_QUEUE) children[curr_child].state = PCB_STATE_RUNNING;
     printf("[Starting Child: %d]\n", curr_child);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
+        children[curr_child].state = PCB_STATE_RUNNING;
+        kill(children[curr_child].pid, SIGCONT);
+    }
     
     while (true) {
         // Checks CTRL-Z Signal
@@ -443,9 +466,8 @@ kernelsim_start(void)
 
             else {
                 puts("[Resuming Kernel Simulation...]");
-                _kernelsim_resume();
-
                 running = true;
+                _kernelsim_resume();
             }
             #else
             _kernelsim_state();

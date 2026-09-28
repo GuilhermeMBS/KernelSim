@@ -10,7 +10,8 @@
 #include "pipes.h"
 
 
-DebugRet pipe_make(pipe_t* p) 
+DebugRet
+pipe_make(pipe_t* p) 
 {
     if (pipe(p->to) < 0) {
         perror("[PIPE ERROR] Failed to create 'to' pipe");
