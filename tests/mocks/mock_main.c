@@ -1,4 +1,4 @@
-#include "kernelsim.h"
+#include "core/kernelsim.h"
 
 int main(void) {
     kernelsim_init();

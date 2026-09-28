@@ -35,7 +35,7 @@
 static inline void _intercontroller_send(IntercontrollerSig signal)
 {
     fflush(stdout);
-    printf("%d", signal);
+    write(STDOUT_FILENO, &signal, sizeof(IntercontrollerSig));
     fflush(stdout);
 }
 

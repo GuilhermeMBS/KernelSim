@@ -98,6 +98,29 @@ test_child: $(TEST_BIN_DIR)/test_child
 test_all: test_queues test_pipes test_intercontroller test_child
 
 # ==============================================================================
+# Kernel Mock Testing Environment
+# ==============================================================================
+.PHONY: mock_env test_kernel
+
+KERNEL_TEST_SOURCES := 		\
+    tests/mocks/mock_main.c \
+    src/core/kernelsim.c 	\
+    src/ipc/pipes.c 		\
+    src/utils/queue.c 		\
+    src/utils/debug.c
+
+mock_env:
+	@mkdir -p $(BIN_DIR)
+	@echo "Building mocks..."
+	$(CC) $(CFLAGS) tests/mocks/mock_child.c -o $(BIN_DIR)/child
+	$(CC) $(CFLAGS) tests/mocks/mock_intercontroller.c -o $(BIN_DIR)/intercontroller
+	$(CC) $(CFLAGS) $(KERNEL_TEST_SOURCES) -o $(BIN_DIR)/kernel
+
+test_kernel: mock_env
+	@echo "Running KernelSim with Mocks... (Press Ctrl+Z to test context)"
+	./$(BIN_DIR)/kernel
+
+# ==============================================================================
 # Cleanup and Utilities
 # ==============================================================================
 .PHONY: clean help

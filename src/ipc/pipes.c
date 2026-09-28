@@ -16,7 +16,7 @@ DebugRet pipe_make(pipe_t* p)
         perror("[PIPE ERROR] Failed to create 'to' pipe");
         return DEBUG_RET_PIPE_ERROR;
     }
-    printf("[PID %d] Pipe 'To' Created\n", getpid());
+    puts("Pipe 'To' Created");
     
     if (pipe(p->from) < 0) {
         perror("[PIPE ERROR] Failed to create 'from' pipe");
@@ -27,7 +27,7 @@ DebugRet pipe_make(pipe_t* p)
         
         return DEBUG_RET_PIPE_ERROR;
     }
-    printf("[PID %d] Pipe 'From' Created\n", getpid());
+    puts("Pipe 'From' Created");
 
     return DEBUG_RET_SUCCESS;
 }

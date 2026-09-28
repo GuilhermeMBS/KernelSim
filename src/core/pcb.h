@@ -50,6 +50,20 @@ typedef enum
 } PcbState;
 
 /**
+ * @brief String representations of PcbState for debug visualization.
+ * 
+ * Uses designated initializers to ensure strict mapping regardless of 
+ * the enum declaration order.
+ */
+static const char * const pcb_state_strings[] = {
+    [PCB_STATE_READY]       = "READY",
+    [PCB_STATE_WAIT_RECV]   = "WAIT_RECV",
+    [PCB_STATE_WAIT_SEND]   = "WAIT_SEND",
+    [PCB_STATE_RUNNING]     = "RUNNING",
+    [PCB_STATE_DONE]        = "DONE"
+};
+
+/**
  * @brief System call statistics for a process.
  */
 typedef struct

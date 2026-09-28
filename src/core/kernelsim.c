@@ -40,8 +40,6 @@ static int curr_child;                                  // Current Running Child
 static bool running = false;                            // Process Running (for DEBUG)
 static bool context_triggered = false;                  // CTRL-Z Flag
 
-
-QUEUE_INIT(controller_sig, 3);                          // Queue for IRQs Recieved
 QUEUE_INIT(children_ready, NUM_CHILDREN);               // Queue for Ready Processes
 QUEUE_INIT(children_recv, NUM_CHILDREN);                // Queue for Waiting Recv Syscall
 QUEUE_INIT(children_send, NUM_CHILDREN);                // Queue for Waiting Send Syscall
@@ -61,35 +59,38 @@ static queue_t *brother_pipes[] = {
 
 static void handle_sig(int signal)
 {
+    (void)signal;
     context_triggered = true;
 }
 
 
 void
-_kernelsim_state()
+_kernelsim_state(void)
 {
-    print_table_header();
+    printf("[CTRL-Z SIGNAL RECIEVED] Current Child: %d\n", curr_child);
+    debug_print_table_header();
 
     for (int i = 0; i < NUM_CHILDREN; i++) {
         pcb_child_t child = children[i];
 
+        // Must follow the order and use pcb_state_strings
         printf("%-*d %-*d %-*d %-*d %-*s %-*d %-*d\n",
             DEBUG_COL_WIDTH_CHILD,          i,
             DEBUG_COL_WIDTH_PID,            child.pid,
             DEBUG_COL_WIDTH_PC,             child.ctx.pc,
             DEBUG_COL_WIDTH_N,              child.ctx.n,
-            DEBUG_COL_WIDTH_STATE,          child.state,
+            DEBUG_COL_WIDTH_STATE,          pcb_state_strings[child.state],
             DEBUG_COL_WIDTH_READ_SYSCALLS,  child.data.nread,
             DEBUG_COL_WIDTH_WRITE_SYSCALLS, child.data.nwrite
         );
     }
 
-    print_table_separator();
+    debug_print_table_separator();
 }
 
 
 static inline DebugRet
-_kernelsim_build_child_pipes()
+_kernelsim_build_child_pipes(void)
 {
     printf("Building %d Children Pipes...\n", NUM_CHILDREN);
     for (int i = 0; i < NUM_CHILDREN; i++) pipe_make(&(children[i].child));
@@ -100,7 +101,7 @@ _kernelsim_build_child_pipes()
 
 
 static inline DebugRet
-_kernelsim_build_controller_pipes()
+_kernelsim_build_controller_pipes(void)
 {
     puts("Building Intercontroller Pipes...");
     pipe_make(&controller.child);
@@ -111,7 +112,7 @@ _kernelsim_build_controller_pipes()
 
 
 static inline DebugRet
-_kernelsim_alloc_shm()
+_kernelsim_alloc_shm(void)
 {
     printf("Allocating %d shared memories...\n", NUM_CHILDREN);
 
@@ -137,7 +138,7 @@ _kernelsim_alloc_shm()
 
 
 static inline DebugRet
-_kernelsim_save_ctx()
+_kernelsim_save_ctx(void)
 {
     children[curr_child].ctx.pc = (*shared_context[curr_child]).pc;
     children[curr_child].ctx.n = (*shared_context[curr_child]).n;
@@ -147,57 +148,60 @@ _kernelsim_save_ctx()
 
 
 static void
-_kernelsim_handle_iqr(IntercontrollerSig signal)
+_kernelsim_handle_irq(IntercontrollerSig signal)
 {
     switch (signal) {
         case INTERCONTROLLER_SIG_IRQ0:
-            // Stop child
-            kill(children[curr_child].pid, SIGSTOP);
-            _kernelsim_save_ctx();
-            children[curr_child].state = PCB_STATE_READY;
-            queue_put(&children_ready, curr_child);
-            // Get next process
-            int curr_child = queue_get(&children_ready);
-            if (curr_child == DEBUG_RET_EMPTY_QUEUE) return;
-            kill(children[curr_child].pid, SIGCONT);
-            break;
-
-        // Write
-        case INTERCONTROLLER_SIG_IRQ1:
-            int child_to_move = queue_get(&children_recv);
-            if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
-                queue_put(&children_ready, child_to_move);
-                /*
-                Old Write in Pipe Method (Before SHM)
-                children[child_to_move].state = PCB_STATE_READY;
-                write(children[child_to_move].child.to[WRITE],
-                    children[child_to_move].brother,
-                    sizeof(int)
-                );
-                */
-               (*shared_context[child_to_move]).n = (*shared_context
-                                                    [BROTHER_IDX(child_to_move)]
-                                                    ).pc;
+        {
+            if (children[curr_child].state == PCB_STATE_RUNNING) {
+                kill(children[curr_child].pid, SIGSTOP);
+                _kernelsim_save_ctx();
+                children[curr_child].state = PCB_STATE_READY;
+                queue_put(&children_ready, curr_child);
+            }
+                
+            if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
+                children[curr_child].state = PCB_STATE_RUNNING;
+                kill(children[curr_child].pid, SIGCONT);
             }
             break;
+        }
+
+        case INTERCONTROLLER_SIG_IRQ1:
+        {
+            int child_to_move = queue_get(&children_recv);
+
+            if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
+                int partner_pc = queue_get(children[BROTHER_IDX(child_to_move)].brother);
+                if (partner_pc == DEBUG_RET_EMPTY_QUEUE) partner_pc = 0; // NO_WAIT
+
+                write(children[child_to_move].child.to[WRITE], &partner_pc, sizeof(partner_pc));
+
+                children[child_to_move].state = PCB_STATE_READY;
+                queue_put(&children_ready, child_to_move);
+            }
+            break;
+        }
         
         // Read
         case INTERCONTROLLER_SIG_IRQ2:
+        {
             int child_to_move = queue_get(&children_send);
             if (child_to_move != DEBUG_RET_EMPTY_QUEUE) {
-                queue_put(&children_ready, child_to_move);
                 queue_put(
-                    children[BROTHER_IDX(child_to_move)].brother,
+                    children[child_to_move].brother, 
                     (*shared_context[child_to_move]).pc
                 );
+
+                children[child_to_move].state = PCB_STATE_READY;
+                queue_put(&children_ready, child_to_move);
             }
             break;
+        }
 
-        case INTERCONTROLLER_SIG_ERROR:
-            exit(10);
+        case INTERCONTROLLER_SIG_ERROR: exit(10);
 
-        default:
-            puts("[Undefined Intercontroller Signal]");
+        default: puts("[Undefined Intercontroller Signal]");
     }
 }
 
@@ -207,43 +211,48 @@ _kernelsim_handle_syscall(ChildOp op)
 {
     switch (op) {
         case CHILD_OP_WRITE:
+        {
             kill(children[curr_child].pid, SIGSTOP);
             _kernelsim_save_ctx();
             queue_put(&children_send, curr_child);
             children[curr_child].data.nwrite++;
+            children[curr_child].state = PCB_STATE_WAIT_SEND;
             break;
+        }
 
         case CHILD_OP_READ:
+        {
             kill(children[curr_child].pid, SIGSTOP);
             _kernelsim_save_ctx();
             queue_put(&children_recv, curr_child);
             children[curr_child].data.nread++;
+            children[curr_child].state = PCB_STATE_WAIT_RECV;
             break;
+        }
 
-        default:
-            puts("[Undefined Child OP Signal]");
+        default: puts("[Undefined Child OP Signal]");
     }
 }
 
 
-inline void
-_kernelsim_pause()
+static inline void
+_kernelsim_pause(void)
 {
     kill(controller.pid, SIGSTOP);
-    kill(children[curr_child].pid, SIGSTOP);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) kill(children[curr_child].pid, SIGSTOP);
 }
 
 
-inline void
-_kernelsim_resume()
+static inline void
+_kernelsim_resume(void)
 {
     kill(controller.pid, SIGCONT);
-    kill(children[curr_child].pid, SIGCONT);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) kill(children[curr_child].pid, SIGCONT);
 }
 
 
 static void
-_kernelsim_engine()
+_kernelsim_engine(void)
 {    
     #define POLL_SIZE (NUM_CHILDREN + 1) // Children + Intercontroller
     #define POLL_IC_IDX (POLL_SIZE - 1)  // Intercontroller Index
@@ -270,35 +279,26 @@ _kernelsim_engine()
 
     // Intercontroller Signal
     if (fds[POLL_IC_IDX].revents & POLLIN) {
-        char signal_char;
-        // Lê exatamente 1 byte, como enviado pelo printf("%d") do Intercontroller
-        int bytes_read = read(fds[POLL_IC_IDX].fd, &signal_char, 1);
+        IntercontrollerSig signal;
+        int bytes_read = read(fds[POLL_IC_IDX].fd, &signal, sizeof(IntercontrollerSig));
         
         if (bytes_read > 0) {
-            // Converte o char ASCII de volta para um valor inteiro (0, 1 ou 2)
-            int signal = signal_char - '0';
             printf("[INTERCONTROLLER] IRQ%d\n", signal);
             _kernelsim_handle_irq(signal);
         }
-        else if (bytes_read == 0) {
-            puts("[INTERCONTROLLER] Closed Pipe!");
-        }
+        else if (bytes_read == 0) puts("[INTERCONTROLLER] Closed Pipe!");
     }
 
     // Children Signal
-    // Assumindo que curr_child foi definido corretamente antes desta verificação
-    if (fds[curr_child].revents & POLLIN) {
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE && (fds[curr_child].revents & POLLIN)) {
         ChildOp op;
-        // Aqui sizeof(ChildOp) faz sentido SE a aplicação filha enviou a struct crua via write()
         int bytes_read = read(fds[curr_child].fd, &op, sizeof(ChildOp));
         
         if (bytes_read > 0) {
             printf("[Child %d] Syscall OP%d\n", curr_child, op);
             _kernelsim_handle_syscall(op);
         }
-        else if (bytes_read == 0) {
-            printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
-        }
+        else if (bytes_read == 0) printf("[SIGNAL | P%d] Closed Pipe.\n", curr_child);
     }
 
     #undef POLL_SIZE
@@ -307,7 +307,7 @@ _kernelsim_engine()
 
 
 static DebugRet
-_kernelsim_exec_child()
+_kernelsim_exec_child(void)
 {
     for (int i = 0; i < NUM_CHILDREN; i++) {
         pid_t pid = fork();
@@ -335,13 +335,19 @@ _kernelsim_exec_child()
             close(children[i].child.to[WRITE]);
             close(children[i].child.from[READ]);
 
-            char read_fd_str[16], write_fd_str[16], id_str[16];
+            // Close Brother Pipe Ends 
+            for (int j = 0; j < i; j++) {
+                close(children[j].child.to[READ]);
+                close(children[j].child.from[WRITE]);
+            }
+
+            char read_fd_str[16], write_fd_str[16];
             snprintf(read_fd_str, sizeof(read_fd_str), "%d", children[i].child.to[READ]);
             snprintf(write_fd_str, sizeof(write_fd_str), "%d", children[i].child.from[WRITE]);
-            snprintf(id_str, sizeof(id_str), "%d", i);
 
-            // execl("./bin/child", "child", id_str, read_fd_str, write_fd_str, NULL);
-            exit(0);
+            execl("./bin/child", "child", read_fd_str, write_fd_str, NULL);
+            perror("[EXEC ERROR] Child");
+            exit(DEBUG_RET_EXEC_ERROR);
         }
 
         else {
@@ -355,7 +361,7 @@ _kernelsim_exec_child()
 
 
 static DebugRet
-_kernelsim_exec_controller()
+_kernelsim_exec_controller(void)
 {
     pid_t pid = fork();
 
@@ -368,21 +374,15 @@ _kernelsim_exec_controller()
     }
 
     else if (pid == 0) {
-        // Redirects the Read End of (Kernel --> Controller) to STDOUT
+        // Redirects the Pipes to STDIN and STDOUT
         dup2(controller.child.to[READ], STDIN_FILENO);
-
-        // Redirects the Write End of (Controller --> Kernel) to STDIN
         dup2(controller.child.from[WRITE], STDOUT_FILENO);
 
         // Close Unused Pipe Ends
         close(controller.child.to[WRITE]);
         close(controller.child.from[READ]);
 
-        // Replace process image with the child binary
-        char id_str[16];
-        snprintf(id_str, sizeof(id_str), "%d");
-
-        execl("./bin/intercontroller", "controller", id_str, NULL);
+        execl("./bin/intercontroller", "controller", NULL);
 
         perror("[Intercontroller] Exec Failed!");
         exit(DEBUG_RET_EXEC_ERROR);
@@ -398,7 +398,7 @@ _kernelsim_exec_controller()
 
 
 void
-kernelsim_init() 
+kernelsim_init(void) 
 {
     // Set Handler
     if (signal(SIGTSTP, handle_sig) == SIG_ERR) {
@@ -420,13 +420,13 @@ kernelsim_init()
 
 
 void 
-kernelsim_start()
+kernelsim_start(void)
 {
     // Function to show initial processes states AND FLAGS
 
-    printf("[Starting Child: %d]", queue_get(&children_ready));
-    _kernelsim_resume();
-    running = true;
+    curr_child = queue_get(&children_ready);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) children[curr_child].state = PCB_STATE_RUNNING;
+    printf("[Starting Child: %d]\n", curr_child);
     
     while (true) {
         // Checks CTRL-Z Signal
