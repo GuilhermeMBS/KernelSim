@@ -32,7 +32,9 @@ DebugRet
 queue_get(queue_t *q)
 {
     if (IS_EMPTY(q)) {
-        printf("[QUEUE ERROR] Empty Queue! Cannot retrieve element.\n");
+        #if DEBUG
+        puts("[QUEUE] Empty Queue.");
+        #endif
         return DEBUG_RET_EMPTY_QUEUE;
     }
     

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/shm.h>
 #include <time.h>
 
 #include "process/child.h"
@@ -24,7 +25,7 @@
 
 static int read_pipe;
 static int write_pipe;
-static child_data_t data = { .pc = 0, .n = 0 };
+static child_data_t *data;
 
 /**
  * @brief Generates a random number of iterations for the process lifespan.
@@ -50,7 +51,7 @@ _generate_iterations(pid_t pid)
 static DebugRet
 _child_syscall(ChildOp op)
 {
-    printf("[SYSCALL | PC %d] Requesting OP %d\n", data.pc, op);
+    printf("[SYSCALL | PC %d] Requesting OP %d\n", data->pc, op);
 
     ChildOp tmp = op;
     ssize_t bytes_written = write(write_pipe, &tmp, sizeof(tmp));
@@ -76,8 +77,8 @@ _child_loop(int max_iterations)
     ts.tv_sec = 0;
     ts.tv_nsec = SLEEP_TIME * 1000000L; // 500 ms in nanoseconds
 
-    while (data.pc < max_iterations) {
-        data.pc++;
+    while (data->pc < max_iterations) {
+        data->pc++;
         nanosleep(&ts, NULL);
 
         int prob = rand() % 100;
@@ -89,15 +90,15 @@ _child_loop(int max_iterations)
                 ssize_t bytes_read = read(read_pipe, &brother_n, sizeof(brother_n));
                 
                 if (bytes_read == -1) {
-                    printf("[PIPE | PC %d] Read Failed\n", data.pc);
+                    printf("[PIPE | PC %d] Read Failed\n", data->pc);
                     return -1;
                 }
                 
                 if (brother_n == 0) {
-                    printf("[PIPE | PC %d] Read Pipe Empty (NO_WAIT)\n", data.pc);
+                    printf("[PIPE | PC %d] Read Pipe Empty (NO_WAIT)\n", data->pc);
                 } else {
-                    data.n = brother_n;
-                    printf("[PIPE | PC %d] Received N = %d\n", data.pc, data.n);
+                    data->n = brother_n;
+                    printf("[PIPE | PC %d] Received N = %d\n", data->pc, data->n);
                 }
             }
             
@@ -119,8 +120,8 @@ _child_loop(int max_iterations)
 int
 main(int argc, char *argv[])
 {
-    if (argc < 3) {
-        fprintf(stderr, "Usage: ./child <read_pipe> <write_pipe>\n");
+    if (argc < 4) {
+        fprintf(stderr, "Usage: ./child <read_pipe> <write_pipe> <shm_id>\n");
         exit(DEBUG_RET_EXEC_ERROR);
     }
     
@@ -129,7 +130,14 @@ main(int argc, char *argv[])
 
     read_pipe  = atoi(argv[1]);
     write_pipe = atoi(argv[2]);
+    int shm_id = atoi(argv[3]);
 
+    data = (child_data_t *)shmat(shm_id, NULL, 0);
+    if (data == (void *)-1) {
+        printf("[CHILD | PID %d] shmat failed", pid);
+        exit(1);
+    }
+    
     int max_iterations = _generate_iterations(pid);
     printf("[Process %d] Max Iterations: %d\n", pid, max_iterations);
 

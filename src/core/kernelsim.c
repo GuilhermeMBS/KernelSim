@@ -68,7 +68,7 @@ _handle_sig(int sig)
     else {
         for (int i = 0; i < NUM_CHILDREN; i++) kill(children[i].pid, SIGKILL);
         kill(controller.pid, SIGKILL);
-        exit(0);
+        _exit(0); // Avoid deadlocks from C flush of simple exit(0)
     }
 }
 
@@ -265,7 +265,10 @@ static inline void
 _kernelsim_resume(void)
 {
     kill(controller.pid, SIGCONT);
-    if (curr_child != DEBUG_RET_EMPTY_QUEUE) kill(children[curr_child].pid, SIGCONT);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
+        children[curr_child].state = PCB_STATE_RUNNING;
+        kill(children[curr_child].pid, SIGCONT);
+    }
 }
 
 
@@ -306,11 +309,12 @@ _kernelsim_exec_child(void)
                 close(children[j].child.from[WRITE]);
             }
 
-            char read_fd_str[16], write_fd_str[16];
+            char read_fd_str[16], write_fd_str[16], shm_str[16];
             snprintf(read_fd_str, sizeof(read_fd_str), "%d", children[i].child.to[READ]);
             snprintf(write_fd_str, sizeof(write_fd_str), "%d", children[i].child.from[WRITE]);
+            snprintf(shm_str, sizeof(shm_str), "%d", shmids[i]); // Converte o SHM ID
 
-            execl("./bin/child", "child", read_fd_str, write_fd_str, NULL);
+            execl("./bin/child", "child", read_fd_str, write_fd_str, shm_str, NULL);
             perror("[EXEC ERROR] Child");
             exit(DEBUG_RET_EXEC_ERROR);
         }
@@ -331,7 +335,6 @@ _kernelsim_exec_controller(void)
     pid_t pid = fork();
 
     if (pid > 0) {
-        setpgid(0, 0); // Isolate from signals CTRL-Z and CTRL-C from terminal
         controller.pid = pid;
 
         // Close Unused Pipe Ends
@@ -340,6 +343,8 @@ _kernelsim_exec_controller(void)
     }
 
     else if (pid == 0) {
+        setpgid(0, 0); // Isolate from signals CTRL-Z and CTRL-C from terminal
+
         // Redirects the Pipes to STDIN and STDOUT
         dup2(controller.child.to[READ], STDIN_FILENO);
         dup2(controller.child.from[WRITE], STDOUT_FILENO);
@@ -450,15 +455,13 @@ kernelsim_init(void)
 void 
 kernelsim_start(void)
 {
-    running = true;
     // Function to show initial processes states AND FLAGS
 
     curr_child = queue_get(&children_ready);
     printf("[Starting Child: %d]\n", curr_child);
-    if (curr_child != DEBUG_RET_EMPTY_QUEUE) {
-        children[curr_child].state = PCB_STATE_RUNNING;
-        kill(children[curr_child].pid, SIGCONT);
-    }
+    
+    _kernelsim_resume();
+    running = true;
     
     while (true) {
         // Checks CTRL-Z Signal
