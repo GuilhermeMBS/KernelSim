@@ -148,6 +148,7 @@ clean:
 help:
 	@echo "KernelSim Build System - Available commands:"
 	@echo "  make                 - Builds all main binaries (kernel, child, intercontroller)"
+	@echo "  make run             - Builds all main binaries and run the program"
 	@echo "  make clean           - Removes all compiled files and directories"
 	@echo "  make test_all        - Compiles and runs all test suites sequentially"
 	@echo "  make test_<module>   - Runs a specific test (queues, pipes, intercontroller, child)"

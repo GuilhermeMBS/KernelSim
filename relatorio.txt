@@ -1,0 +1,35 @@
+Guilherme Machado de Bragança Soares - 2410804
+João Pedro Capechi Telhado - 2410535
+
+O projeto está dividido da seguinte forma:
+kernelSim/
+    |-src/
+    |   |-core/
+    |   |-ipc/
+    |   |-process/
+    |   |-utils/
+    |   |-main.c
+    |
+    |-tests/
+    |   |-mocks/
+    |   |-suites/
+    |
+    |-Makefile
+    |-README.md
+    |-gitignore
+    |-relatorio.txt
+
+Em que, dentro da pasta src contém todos os códigos relacionados ao funcionamento do projeto.
+    Na pasta core contém os arquivos relacionados ao kernelSim (.h e .c), como também o .h do pcb para os processos filhos;
+    Na pasta ipc contém os arquivos relacionados ao intercontroller, o qual é responsável para enviar os sinais IQR0/1/2, como também as estruturas relacionadas às pipes;
+    Na pasta process contém os arquivos relacionados aos processos filhos (A1 - A6);
+    E na pasya utils contém os arquivos relacionados ao debug do projeto, como também a estrutura de fila que utilizamos (queue.h e .c)
+
+Na pasta tests, há os mockups dos códigos que serão testados, pois assim não é necessário alterar os valores dos códigos que, de fato, irão estar presentes na execução do programa. Uma das mudanças foi aumentar a chance de pedir/enviar IQR1/2, para validar mais rapidamente o código
+Ainda na pasta teste, há os testes para a queue, pipes, intercontroller e dos processos filhos.
+Para a queue e a pipe foram validados se elas eram criadas sem nenhum erro de código, como também se as suas variáveis eram inicializadas de forma correta.
+Quanto ao filho e ao intercontroller, verifica-se se eles inicializam se pausando, pois eles devem aguardam o comando do kernelSim para começar de fato. Além disso, também foi avaliado se há o envio dos sinais IQR0/1/2 (no caso do intercontroller), como também transmissão/leitura (no caso do filho)
+
+Para saber quais são os possíveis modos de executar esse programa, basta dar: "make help"; assim listará todas os métodos possíveis. Dentre eles, os mais importantes são: "make test_all" e "make run".
+O primeiro é responsável por rodar todos os nossos casos testes e o segundo por compilar e rodar o código principal.
+

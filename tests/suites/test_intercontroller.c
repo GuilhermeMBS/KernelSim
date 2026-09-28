@@ -41,13 +41,13 @@ current_time_ms(void)
  * Uses select() to wait for data within a specified timeout. Reads exactly 1 byte.
  *
  * @param fd The file descriptor to read from (pipe).
- * @param signal Pointer to store the read signal character.
+ * @param signal Pointer to store the read signal.
  * @param timeout_ms Maximum time to wait in milliseconds.
  * 
  * @return 1 if a byte was read, 0 on timeout, -1 on error.
  */
 static int
-read_signal(int fd, char *signal, int timeout_ms)
+read_signal(int fd, IntercontrollerSig *signal, int timeout_ms)
 {
     fd_set readfds;
     struct timeval timeout;
@@ -72,8 +72,8 @@ read_signal(int fd, char *signal, int timeout_ms)
     if (result == 0) return 0; 
 
     // Select found something on fd
-    ssize_t bytes = read(fd, signal, 1);
-    if (bytes == 1) return 1;
+    ssize_t bytes = read(fd, signal, sizeof(IntercontrollerSig));
+    if (bytes == sizeof(IntercontrollerSig)) return 1;
 
     return -1;
 }
@@ -176,13 +176,13 @@ test_iqr_zero(void)
     long long start = current_time_ms();
     kill(pid, SIGCONT);
 
-    char signal;
+    IntercontrollerSig signal;
     int result = read_signal(fd, &signal, TIME_SLICE + 250);
     
     long long elapsed = current_time_ms() - start;
 
     assert(result == 1);
-    assert(signal == '0');
+    assert(signal == INTERCONTROLLER_SIG_IRQ0);
     
     // Validate timing boundaries with a 100ms tolerance for OS scheduling
     assert(elapsed >= TIME_SLICE - 100);
@@ -215,24 +215,16 @@ test_valid_signals(void)
     int signals[3] = {0, 0, 0};
     kill(pid, SIGCONT);
 
-    for (int i = 0; i < 20; i++) {
-        char signal;
+    for (int i = 0; i < 30; i++) {
+        IntercontrollerSig signal;
         int result = read_signal(fd, &signal, TIME_SLICE + 500);
 
         assert(result == 1);
-        assert(signal == '0' || signal == '1' || signal == '2');
+        assert(signal == INTERCONTROLLER_SIG_IRQ0 || signal == INTERCONTROLLER_SIG_IRQ1 || signal == INTERCONTROLLER_SIG_IRQ2);
 
-        switch(signal) {
-            case '0':
-                signals[0]++;
-                break;
-            case '1':
-                signals[1]++;
-                break;
-            case '2':
-                signals[2]++;
-                break;
-        }
+        if (signal == INTERCONTROLLER_SIG_IRQ0) signals[0]++;
+        else if (signal == INTERCONTROLLER_SIG_IRQ1) signals[1]++;
+        else signals[2]++;
     }
     
     printf("PASS\n");
