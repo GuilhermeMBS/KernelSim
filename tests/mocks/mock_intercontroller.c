@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <signal.h>
 #include "ipc/intercontroller.h"
 
 int
@@ -10,6 +11,8 @@ main(void)
     struct timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = 500000000L; // 500ms (Time-slice do Round Robin)
+
+    raise(SIGSTOP);
 
     while (1) {
         nanosleep(&ts, NULL);

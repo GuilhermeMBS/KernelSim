@@ -3,12 +3,19 @@
 #include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include <sys/shm.h>
 #include "process/child.h"
 
+static child_data_t *data;
+
 int main(int argc, char *argv[]) {
-    if (argc < 3) return 1;
+    if (argc < 4) return 1;
     int read_pipe = atoi(argv[1]);
     int write_pipe = atoi(argv[2]);
+    int shm_id = atoi(argv[3]);
+
+    data = (child_data_t *)shmat(shm_id, NULL, 0);
+    data->pc = 0; data->n = 0;
 
     struct timespec ts;
     ts.tv_sec = 0;
@@ -18,6 +25,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         nanosleep(&ts, NULL);
+        data->pc++;
 
         if (rand() % 100 < 15) {
             ChildOp op = (rand() % 2 == 0) ? CHILD_OP_WRITE : CHILD_OP_READ;
@@ -26,6 +34,7 @@ int main(int argc, char *argv[]) {
             if (op == CHILD_OP_READ) {
                 int partner_pc;
                 read(read_pipe, &partner_pc, sizeof(partner_pc));
+                data->n = partner_pc;
             }
         }
     }
