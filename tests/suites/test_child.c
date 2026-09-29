@@ -18,7 +18,7 @@
 
 #include "process/child.h"
 
-#define CHILD_PATH "./bin/mock_child"
+#define CHILD_PATH "./bin/child"
 
 static int
 create_shm()

@@ -20,7 +20,7 @@
 
 #include "ipc/intercontroller.h"
 
-#define INTERCONTROLLER_PATH "./bin/mock_ipc"
+#define INTERCONTROLLER_PATH "./bin/intercontroller"
 
 /**
  * @brief Retrieves the current monotonic time.
