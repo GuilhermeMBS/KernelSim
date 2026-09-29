@@ -20,7 +20,7 @@
 
 #include "ipc/intercontroller.h"
 
-#define INTERCONTROLLER_PATH "./bin/intercontroller"
+#define INTERCONTROLLER_PATH "./bin/mock_ipc"
 
 /**
  * @brief Retrieves the current monotonic time.
@@ -215,7 +215,7 @@ test_valid_signals(void)
     int signals[3] = {0, 0, 0};
     kill(pid, SIGCONT);
 
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 100; i++) {
         IntercontrollerSig signal;
         int result = read_signal(fd, &signal, TIME_SLICE + 500);
 
@@ -226,8 +226,14 @@ test_valid_signals(void)
         else if (signal == INTERCONTROLLER_SIG_IRQ1) signals[1]++;
         else signals[2]++;
     }
-    
-    printf("PASS\n");
+
+    printf("\n");
+    for (int i = 0; i < 3; i++) {
+        printf("\t\tIRQ%d: %d\n", i, signals[i]);
+        assert(signals[i] != 0);
+    }
+
+    printf("\t\t\tPASS\n");
     stop_intercontroller(pid, fd);
     
     for (int i = 0; i < 3; i++) {

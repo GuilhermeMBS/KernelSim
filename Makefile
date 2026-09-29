@@ -64,7 +64,11 @@ $(BUILD_DIR)/%.o: src/%.c
 .PHONY: test_intercontroller test_pipes test_queues test_child test_all
 
 # Intercontroller Test
-$(TEST_BIN_DIR)/test_intercontroller: tests/suites/test_intercontroller.c $(BIN_DIR)/intercontroller
+$(BIN_DIR)/mock_ipc:
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) tests/mocks/mock_intercontroller.c -o $@
+
+$(TEST_BIN_DIR)/test_intercontroller: tests/suites/test_intercontroller.c $(BIN_DIR)/mock_ipc
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< -o $@
 
@@ -88,7 +92,11 @@ test_queues: $(TEST_BIN_DIR)/test_queues
 	./$<
 
 # Child Process Test
-$(TEST_BIN_DIR)/test_child: tests/suites/test_child.c $(BIN_DIR)/child
+$(BIN_DIR)/mock_child:
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) tests/mocks/mock_child.c -o $@
+
+$(TEST_BIN_DIR)/test_child: tests/suites/test_child.c $(BIN_DIR)/mock_child
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< -o $@
 
