@@ -40,7 +40,7 @@ static pcb_child_t children[NUM_CHILDREN];              // Children PCB Array
 static pcb_controller_t controller;                     // Intercontroller Pipe
 static child_data_t *shared_context[NUM_CHILDREN];      // Context Pointers
 static int shmids[NUM_CHILDREN];                        // Shared Memory ID
-static int counter_DONE = 0;
+static int children_done = 0;                           // Counter of children in Done State
 
 // Currently running child ID, or EMPTY if CPU is idle
 static int curr_child = DEBUG_RET_EMPTY_QUEUE;
@@ -304,7 +304,7 @@ _kernelsim_handle_syscall(ChildOp op)
             kill(children[curr_child].pid, SIGSTOP);
             _kernelsim_save_ctx();
             children[curr_child].state = PCB_STATE_DONE;
-            counter_DONE++;
+            children_done++;
             break;
         }
 
@@ -588,14 +588,43 @@ kernelsim_start(void)
 
             context_triggered = false;
         }
-        else if (counter_DONE != NUM_CHILDREN)
-        {
-            _kernelsim_engine();
-        }
-        else
-        {
-            printf("All child process have finished\n");
-            pause();
+        
+        if (children_done != NUM_CHILDREN) _kernelsim_engine();
+
+        // All Children Are Done
+        else {
+            static bool cleaned_up = false;
+            
+            if (!cleaned_up) {
+                kill(controller.pid, SIGSTOP); // Stops Intercontroller
+                puts("\n[All Children Processes Have Finished]");
+
+                // Close all Kernel Pipes
+                for (int i = 0; i < NUM_CHILDREN; i++) {
+                    close(children[i].child.to[WRITE]);
+                    close(children[i].child.from[READ]);
+                }
+                close(controller.child.to[WRITE]);
+                close(controller.child.from[READ]);
+                
+                puts("[All Pipes Successfully Closed]");
+
+                // Destroy Shared Memories
+                for (int i = 0; i < NUM_CHILDREN; i++) {
+                    shmdt(shared_context[i]);
+                    shmctl(shmids[i], IPC_RMID, NULL);
+                }
+                puts("[Shared Memory Segments Detached and Removed]");
+                puts("[System Idle and Intercontroller Stoped]");
+
+                puts("\n[Press CTRL-Z to view final states]");
+                puts("[Press CTRL-C to safely terminate the system]");
+                
+                cleaned_up = true;
+            }
+            
+            // Sleeps until recieves a signal
+            pause(); 
         }
 
     }
