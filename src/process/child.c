@@ -51,7 +51,7 @@ _generate_iterations(pid_t pid)
 static DebugRet
 _child_syscall(ChildOp op)
 {
-    printf("[SYSCALL | PC %d] Requesting OP %d\n", data->pc, op);
+    printf("[SYSCALL | PC %d] Signal OP %d\n", data->pc, op);
 
     ChildOp tmp = op;
     ssize_t bytes_written = write(write_pipe, &tmp, sizeof(tmp));
@@ -144,5 +144,6 @@ main(int argc, char *argv[])
     raise(SIGSTOP); // Suspends until KernelSim sends SIGCONT
     _child_loop(max_iterations);
 
+    _child_syscall(CHILD_OP_DONE);
     return 0;
 }

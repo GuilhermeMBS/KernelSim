@@ -19,7 +19,8 @@
 typedef enum
 {
     CHILD_OP_WRITE = 1, // Request to send the current PC to the partner
-    CHILD_OP_READ       // Request to receive the partner's PC into N
+    CHILD_OP_READ,      // Request to receive the partner's PC into N
+    CHILD_OP_DONE
 } ChildOp;
 
 /**

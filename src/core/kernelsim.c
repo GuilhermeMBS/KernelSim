@@ -298,6 +298,14 @@ _kernelsim_handle_syscall(ChildOp op)
             break;
         }
 
+        case CHILD_OP_DONE:
+        {
+            kill(children[curr_child].pid, SIGSTOP);
+            _kernelsim_save_ctx();
+            children[curr_child].state = PCB_STATE_DONE;
+            break;
+        }
+
         default: puts("[Undefined Child OP Signal]"); // Exit early to avoid bad state
     }
 
