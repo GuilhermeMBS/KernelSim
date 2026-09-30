@@ -40,6 +40,7 @@ static pcb_child_t children[NUM_CHILDREN];              // Children PCB Array
 static pcb_controller_t controller;                     // Intercontroller Pipe
 static child_data_t *shared_context[NUM_CHILDREN];      // Context Pointers
 static int shmids[NUM_CHILDREN];                        // Shared Memory ID
+static int counter_DONE = 0;
 
 // Currently running child ID, or EMPTY if CPU is idle
 static int curr_child = DEBUG_RET_EMPTY_QUEUE;
@@ -303,6 +304,7 @@ _kernelsim_handle_syscall(ChildOp op)
             kill(children[curr_child].pid, SIGSTOP);
             _kernelsim_save_ctx();
             children[curr_child].state = PCB_STATE_DONE;
+            counter_DONE++;
             break;
         }
 
@@ -586,8 +588,16 @@ kernelsim_start(void)
 
             context_triggered = false;
         }
+        else if (counter_DONE != NUM_CHILDREN)
+        {
+            _kernelsim_engine();
+        }
+        else
+        {
+            printf("All child process have finished\n");
+            pause();
+        }
 
-        _kernelsim_engine();
     }
 }
 
