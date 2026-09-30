@@ -17,7 +17,9 @@ DebugRet
 queue_put(queue_t *q, int e)
 {
     if (IS_FULL(q)) {
-        printf("[QUEUE ERROR] Full Queue! Insertion of %d canceled.\n", e);
+        #if DEBUG_QUEUE
+        printf("[QUEUE] Full Queue! Insertion of %d canceled.\n", e);
+        #endif
         return DEBUG_RET_FULL_QUEUE;
     }
 
@@ -32,7 +34,7 @@ DebugRet
 queue_get(queue_t *q)
 {
     if (IS_EMPTY(q)) {
-        #if DEBUG
+        #if DEBUG_QUEUE
         puts("[QUEUE] Empty Queue.");
         #endif
         return DEBUG_RET_EMPTY_QUEUE;

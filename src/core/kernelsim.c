@@ -303,6 +303,7 @@ _kernelsim_handle_syscall(ChildOp op)
 
     // Don't lose a cycle: Voluntarily yield the CPU
     curr_child = queue_get(&children_ready);
+    if (curr_child != DEBUG_RET_EMPTY_QUEUE) children[curr_child].state = PCB_STATE_RUNNING;
 }
 
 /**

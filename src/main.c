@@ -24,7 +24,7 @@ main(void)
     puts("[Building Kernel Simulation]");
     kernelsim_init();
     sleep(1);
-    puts("[Kernel Simulation Ready]");
+    puts("\n[Kernel Simulation Ready]");
 
     #if DEBUG
     _wait_enter("[Press ENTER to Start Simulation]");

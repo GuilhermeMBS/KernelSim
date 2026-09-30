@@ -16,6 +16,12 @@
 #define DEBUG 1
 
 /**
+ * @brief Debug flag to see prints from queue.
+ * Set to 1 to enable the prints of Full and Empty Queue or 0 to disable.
+ */
+#define DEBUG_QUEUE 0
+
+/**
  * @brief X-Macro list for the debug table columns.
  * 
  * Defines the layout of the state visualization table.

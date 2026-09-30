@@ -49,12 +49,12 @@ main(void)
     ts.tv_sec = TIME_SLICE / 1000;
     ts.tv_nsec = (TIME_SLICE % 1000) * 1000000L;
     
-#if RAND_SEED
+    #if RAND_SEED
     struct timespec seed_ts;
     clock_gettime(CLOCK_MONOTONIC, &seed_ts);
     unsigned int seed = (unsigned int)(seed_ts.tv_sec ^ seed_ts.tv_nsec);
     srand(seed);
-#endif
+    #endif
 
     raise(SIGSTOP); // Suspends until KernelSim sends SIGCONT
     while (true) {
